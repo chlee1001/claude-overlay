@@ -39,6 +39,9 @@ drift_found=0
 for pdir in "$PATCHES_DIR"/*/; do
   [ -d "$pdir" ] || continue
   name="$(basename "$pdir")"
+  # Asset-only patches (no target — owned skills/rules/hooks only) have no upstream
+  # plugin file to track; skip them, same as apply.sh's file-patch loop does.
+  [ -f "$pdir/target" ] || continue
   rel="$(cat "$pdir/target")"
   bver="$(cat "$pdir/baseline-version" 2>/dev/null || echo '?')"
   echo "===== [$name] $rel  (baseline @ $bver) ====="
