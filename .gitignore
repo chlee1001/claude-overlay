@@ -1,0 +1,11 @@
+# OMC runtime state (HUD, session tracking) created when an agent runs here
+.omc/
+
+# patch merge artifacts (written next to a target on CONFLICT)
+*.merge-conflict
+
+# settings.json backups left by deploy steps
+*.bak
+
+# macOS
+.DS_Store
