@@ -111,6 +111,9 @@ claude-overlay/
       rules/                     # 소유 규칙 문서, ~/.claude/rules/ 로 복사됨
         korean-writing.md
         writing-tropes.md
+    design-discovery/            # 자산만 (파일 패치 없음)
+      skill/design-discovery/    # 소유 스킬, ~/.claude/skills/ 로 복사됨
+      deploy.sh                  # 플랜 저장 제안 PostToolUse 훅을 settings.json에 멱등 등록
 ```
 
 ## 현재 패치들
@@ -156,6 +159,18 @@ claude-overlay/
 배포한다: `writing-tropes.md`(피해야 할 한국어 AI 글쓰기 트로프 — 예방 규칙)와
 `korean-writing.md`(한글 문서는 그 트로프를 따르고, 그다음 윤문·의미보존을 위해 humanize 패스를
 거친다는 컨벤션). 여기 두면 나머지 자산과 같은 `apply.sh` 실행으로 함께 복구된다.
+
+### design-discovery
+
+자산만 담는다 — 플러그인 파일은 건드리지 않는다. 비어 있던 **PLAN→BUILD** 단계를 채운다. OMC
+플랜(`ralplan`/`planner`)은 아키텍처까지만 정하고 UI 방향은 open-questions로 미루며, `designer`
+에이전트는 빌드 시점에 미감을 즉흥으로 짠다. 이 패치는 `design-discovery` 스킬을 배포한다 — 확정된
+`.omc/plans/*.md`를 받아 **앱 코드를 건드리지 않고** 근거 기반 디자인 아티팩트(brief, 인용 붙은
+X/Reddit/HN UX 리서치, `insane-design` 토큰 기반 `design.md`, HTML 목업)를 만든다. 이 `design.md`는
+이후 `designer`/`insane-apply`가 소비하는 "계약"이다. 동봉한 `deploy.sh`는 `PostToolUse`(Write|Edit)
+훅을 `~/.claude/settings.json`에 멱등 등록한다: 확정 플랜이 저장되면(`*.readable.md`/`open-questions.md`
+제외) `/design-discovery <plan-path>`를 고려하라는 한 줄을 주입하고, 그 외 모든 쓰기엔 침묵한다. UI
+표면이 있는 플랜에만 작동하고 백엔드/CLI 전용은 건너뛴다.
 
 ## 원본 기준 다시 만들기 (잃어버렸을 때)
 

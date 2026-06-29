@@ -141,6 +141,9 @@ claude-overlay/
       hooks/                     # owned hook, copied to ~/.claude/hooks/
         omc-completion-gate.mjs
       deploy.sh                  # registers the Stop hook in settings.json (idempotent)
+    design-discovery/            # assets only (no file patch)
+      skill/design-discovery/    # owned skill, copied to ~/.claude/skills/
+      deploy.sh                  # registers the PostToolUse plan-save suggestion hook (idempotent)
 ```
 
 ## Current patches
@@ -206,6 +209,19 @@ bundles the hook (`hooks/omc-completion-gate.mjs`) and a `deploy.sh` that regist
 `~/.claude/settings.json` idempotently. Adapted from Superpowers' verification-before-completion
 discipline; OMC had no main-loop gate for this. (Previously a standalone `completion-gate/` folder;
 folded in here so one tool deploys and restores it with everything else.)
+
+### design-discovery
+
+Assets only — no plugin file is patched. Fills the missing **PLAN→BUILD** phase: OMC plans
+(`ralplan`/`planner`) stop at architecture and defer UI direction to open-questions, while the
+`designer` agent improvises aesthetics at build time. This patch deploys a `design-discovery` skill
+that, given a finalized `.omc/plans/*.md`, produces research-grounded design artifacts (a brief,
+cited X/Reddit/HN UX research, an `insane-design`-token `design.md`, and an HTML mockup) **without
+touching app code** — a `design.md` "contract" the `designer` agent / `insane-apply` then consume.
+The bundled `deploy.sh` registers a `PostToolUse` (Write|Edit) hook in `~/.claude/settings.json`
+idempotently: when a finalized plan is written (not `*.readable.md` / `open-questions.md`), it
+injects a one-line nudge to consider `/design-discovery <plan-path>`, and stays silent for every
+other write. Gated to UI-bearing plans; backend/CLI-only plans are skipped.
 
 ## Rebuilding a baseline (if one is lost)
 
