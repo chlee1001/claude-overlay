@@ -218,6 +218,14 @@ Assets only — no plugin file is patched. Fills the missing **PLAN→BUILD** ph
 that, given a finalized `.omc/plans/*.md`, produces research-grounded design artifacts (a brief,
 cited X/Reddit/HN UX research, an `insane-design`-token `design.md`, and an HTML mockup) **without
 touching app code** — a `design.md` "contract" the `designer` agent / `insane-apply` then consume.
+It separates **intent** (structure, interaction, status-encoding, feel — always portable) from
+**values** (hex/fonts/spacing/components) and gates on a design-system check: in *greenfield*
+projects it bakes reference values into `design.md`; in *brownfield* projects (existing tokens,
+tailwind theme, component library, design-system dep) it takes only the intent and reconciles it
+onto the project's **own** tokens/components (`integration.md` mapping + gap list with a fixed
+priority — existing system wins on values, design-discovery wins on structure/interaction), then
+emits a `plan-delta.md` of concrete tasks so the design actually weaves into the implementation
+plan instead of floating beside it.
 The bundled `deploy.sh` registers a `PostToolUse` (Write|Edit) hook in `~/.claude/settings.json`
 idempotently: when a finalized plan is written (not `*.readable.md` / `open-questions.md`), it
 injects a one-line nudge to consider `/design-discovery <plan-path>`, and stays silent for every

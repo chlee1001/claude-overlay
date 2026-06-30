@@ -167,7 +167,12 @@ claude-overlay/
 에이전트는 빌드 시점에 미감을 즉흥으로 짠다. 이 패치는 `design-discovery` 스킬을 배포한다 — 확정된
 `.omc/plans/*.md`를 받아 **앱 코드를 건드리지 않고** 근거 기반 디자인 아티팩트(brief, 인용 붙은
 X/Reddit/HN UX 리서치, `insane-design` 토큰 기반 `design.md`, HTML 목업)를 만든다. 이 `design.md`는
-이후 `designer`/`insane-apply`가 소비하는 "계약"이다. 동봉한 `deploy.sh`는 `PostToolUse`(Write|Edit)
+이후 `designer`/`insane-apply`가 소비하는 "계약"이다. **의도**(구조·인터랙션·상태 인코딩·느낌 — 항상
+이식 가능)와 **값**(hex/폰트/spacing/컴포넌트)을 분리하고 디자인 가이드 유무로 분기한다: *greenfield*
+는 레퍼런스 값을 `design.md`에 박고, *brownfield*(기존 토큰·tailwind theme·컴포넌트 라이브러리)는 의도만
+가져와 프로젝트 **자체** 토큰/컴포넌트에 매핑한다(`integration.md` 매핑+gap, 고정 우선순위 — 값은 기존
+시스템이, 구조/인터랙션은 design-discovery가 이김). 그 뒤 `plan-delta.md`에 구체 태스크를 뽑아 디자인이
+구현계획에 **떠다니지 않고 녹아들게** 한다. 동봉한 `deploy.sh`는 `PostToolUse`(Write|Edit)
 훅을 `~/.claude/settings.json`에 멱등 등록한다: 확정 플랜이 저장되면(`*.readable.md`/`open-questions.md`
 제외) `/design-discovery <plan-path>`를 고려하라는 한 줄을 주입하고, 그 외 모든 쓰기엔 침묵한다. UI
 표면이 있는 플랜에만 작동하고 백엔드/CLI 전용은 건너뛴다.
