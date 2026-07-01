@@ -1,0 +1,36 @@
+{
+  "schema": 1,
+  "id": "humanize-korean",
+  "display_name": "humanize-korean (im-not-ai)",
+  "source_type": "installed-plugin",
+  "absorbed_at": "2026-06-30",
+  "locator": {
+    "plugin_key": "humanize-korean@im-not-ai",
+    "plugin_path": "im-not-ai/.claude/skills/humanize-korean",
+    "manifest_path": "im-not-ai/.claude-plugin/plugin.json"
+  },
+  "absorbed_version": {
+    "plugin_version": "1.5.0",
+    "contract": {
+      "taxonomy_hash": "sha256:b061ad516056434cd58e86961cde510d5b6c580bb8e2fc7025acee82335d904d",
+      "taxonomy_file": "references/ai-tell-taxonomy.md",
+      "categories": "10 대분류 / 40+ 서브패턴"
+    }
+  },
+  "dependents": [
+    {
+      "asset": "patches/korean-writing/rules/writing-tropes.md",
+      "depends_on": ["한국어 AI-tell 트로프 분류체계(ai-tell-taxonomy.md)"],
+      "break_if": ["분류 재구성 / 대분류 삭제 / 패턴 정의 변경"]
+    },
+    {
+      "asset": "patches/korean-writing/rules/korean-writing.md",
+      "depends_on": ["humanize 패스(윤문+검증) 컨벤션"],
+      "break_if": ["윤문 패스 의미/모드 변경(fast/strict 계약 등)"]
+    }
+  ],
+  "drift_probe": {
+    "kind": "manifest_version + file_hash",
+    "hash_probe": { "file": "references/ai-tell-taxonomy.md", "record_key": "taxonomy_hash" }
+  }
+}

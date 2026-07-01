@@ -24,6 +24,9 @@ Run these from inside the `claude-overlay` folder:
 ./apply.sh                              # dry run: report only, writes nothing
 ./apply.sh --write                      # apply clean merges
 ./apply.sh --write --update-baseline    # apply, and move the baseline forward when upstream drifted
+
+./reabsorb.sh                           # detect drift in absorbed EXTERNAL sources (sibling flow, read-only)
+./tests/run.sh                          # run the reabsorb test harness (hermetic)
 ```
 
 For the full step-by-step flow the assistant follows after an update, see the
@@ -120,9 +123,17 @@ version — a stale baseline invites needless conflicts over time.
 claude-overlay/
   apply.sh                       # the three-way re-apply script
   upstream-changes.sh            # shows what the OMC update changed in patched files (read-only)
+  reabsorb.sh                    # re-absorption drift detector for absorbed EXTERNAL sources (sibling flow)
+  .reabsorb_core.py              # reabsorb detect/triage/bump/validate core (pure stdlib)
+  verdict.schema.json            # architect triage verdict contract (anti-rubber-stamp)
+  sources/<id>/provenance.json   # what we absorbed, from which source@version, which assets depend on what
+  tests/run.sh                   # hermetic reabsorb test harness (fixtures via env overrides)
+  docs/reabsorb-design.md        # re-absorption flow design (8 decisions locked)
   SKILL.md                       # usage doc for the assistant (incl. guided update workflow)
   README.md / README.ko.md
   patches/
+    reabsorb/                    # assets only (no file patch)
+      skill/reabsorb/            # owned /reabsorb skill, copied to ~/.claude/skills/
     git-master/                  # target: agents/git-master.md
       target / marker / baseline.md / patched.md / baseline-version
     planner-readable/            # target: agents/planner.md
@@ -145,6 +156,40 @@ claude-overlay/
       skill/design-discovery/    # owned skill, copied to ~/.claude/skills/
       deploy.sh                  # registers the PostToolUse plan-save suggestion hook (idempotent)
 ```
+
+## Re-absorption (`reabsorb.sh`) — the sibling flow for absorbed external sources
+
+`apply.sh` keeps our patches of **OMC's own files** alive across OMC updates. But we also
+absorbed things from **other** projects: `design-discovery` consumes `insane-design`'s report
+format at runtime; `completion-gate` adapts a discipline from **Superpowers**; `korean-writing`
+derives from **humanize-korean**'s taxonomy. When *those* upstreams move, a 3-way merge can't help —
+our asset is a *derivative* of an interface or idea, not a line-fork of the source. `reabsorb.sh`
+fills that gap, and runs on the external sources' own cadence (independent of OMC updates).
+
+Each absorbed source is recorded in `sources/<id>/provenance.json`: its type
+(`installed-plugin` / `git-repo` / `concept-source`), the version/commit + **contract** we absorbed
+against, and which owned assets depend on which aspects (`depends_on` / `break_if`). Registering a
+new absorption = dropping one `provenance.json` (six required fields) — no central file to edit.
+
+Flow (`/reabsorb` skill drives judgment; `reabsorb.sh` does mechanics):
+
+1. **`./reabsorb.sh`** — dry-run status table across every source. **Two-axis detection**: plugin
+   version *and* the contract (a report's `schema_version`, or a file hash). Version-only would miss
+   real drift — e.g. `insane-design` schema `3.1→3.2` at unchanged plugin `0.5.3`. Status vocabulary
+   mirrors `apply.sh`: `CURRENT` / `DRIFTED` / `UNKNOWN` / `ERROR`; exit `0/5/4/3` (`2` breaking).
+2. **`./reabsorb.sh --triage <id>`** — assemble the analysis packet (dry-run, no writes).
+3. **OMC `architect` (read-only)** triages each drifted source → `irrelevant` / `compatible`
+   (with a concrete `proposed_delta`) / `breaking`.
+4. **`./reabsorb.sh --validate-verdict <file>`** — a schema check (`verdict.schema.json`) that
+   enforces the anti-rubber-stamp guards: `compatible` is invalid without a concrete delta; a
+   non-`irrelevant` low-confidence verdict must escalate.
+5. **Human gate → re-absorb**: `irrelevant` → `./reabsorb.sh --bump <id>`; `compatible` → a human
+   edits the **bundled** asset per the delta → `./apply.sh --write` redeploys → `--bump`;
+   `breaking` → escalate, no auto-edit. Rollback = the overlay repo's git history.
+
+Testable by construction: `reabsorb.sh` honors `OMC_SOURCES_DIR` / `OMC_INSTALLED_PLUGINS` /
+`OMC_MARKETPLACES_DIR` so `tests/run.sh` points at fixtures and never touches the real `~/.claude`.
+Full design: `docs/reabsorb-design.md`.
 
 ## Current patches
 

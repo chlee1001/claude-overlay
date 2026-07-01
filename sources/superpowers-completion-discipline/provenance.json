@@ -1,0 +1,29 @@
+{
+  "schema": 1,
+  "id": "superpowers-completion-discipline",
+  "display_name": "Superpowers — verification-before-completion discipline",
+  "source_type": "git-repo",
+  "absorbed_at": "2026-06-30",
+  "locator": {
+    "repo": "https://github.com/<owner>/<superpowers-repo>",
+    "tracked_paths": ["<discipline 담은 파일경로>"],
+    "clone_state": "ls-remote"
+  },
+  "absorbed_version": {
+    "commit": "<흡수 당시 커밋 SHA>",
+    "concept_ref": "verification-before-completion discipline"
+  },
+  "dependents": [
+    {
+      "asset": "patches/completion-gate/hooks/omc-completion-gate.mjs",
+      "depends_on": ["규칙: 같은 턴에 검증 증거 없는 완료 주장 차단"],
+      "break_if": ["업스트림 규율 재정의(검증 증거 범주/게이트 시맨틱 변경)"]
+    }
+  ],
+  "drift_probe": {
+    "kind": "git_commit",
+    "ref": "HEAD",
+    "diff_paths": ["<discipline 파일>"]
+  },
+  "_pin_todo": "결정 #3: 실제 Superpowers repo URL + discipline 파일경로를 채우기 전까지 UNKNOWN(unpinned)으로 보고됨."
+}

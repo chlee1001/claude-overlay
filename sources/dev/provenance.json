@@ -1,0 +1,30 @@
+{
+  "schema": 1,
+  "id": "dev",
+  "display_name": "dev / dev-scan (team-attention-plugins)",
+  "source_type": "installed-plugin",
+  "absorbed_at": "2026-06-30",
+  "locator": {
+    "plugin_key": "dev@team-attention-plugins",
+    "plugin_path": "team-attention-plugins/plugins/dev",
+    "manifest_path": "team-attention-plugins/plugins/dev/.claude-plugin/plugin.json"
+  },
+  "absorbed_version": {
+    "plugin_version": "1.1.0",
+    "contract": {
+      "devscan_hash": "sha256:77c7932734671214d31659fa9fcae8e8ebfb3dbb45b51da559079b8981cf4e7e",
+      "coupling": "loose (P2 개발 커뮤니티 리서치: HN/Reddit/Dev.to/Lobsters)"
+    }
+  },
+  "dependents": [
+    {
+      "asset": "patches/design-discovery/skill/design-discovery/SKILL.md",
+      "depends_on": ["개발 도메인 P2 리서치를 dev-scan(HN/Reddit/Dev.to)로 지시"],
+      "break_if": ["dev-scan 스킬명/호출 계약 변경 또는 소스 커버리지 폐기"]
+    }
+  ],
+  "drift_probe": {
+    "kind": "manifest_version + file_hash",
+    "hash_probe": { "file": "skills/dev-scan/SKILL.md", "record_key": "devscan_hash" }
+  }
+}

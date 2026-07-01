@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "claude-overlay/verdict.schema.json",
+  "title": "reabsorb triage verdict",
+  "description": "Structured verdict the OMC architect MUST return per drifted source. reabsorb.sh --validate-verdict enforces the anti-rubber-stamp guards (pure-stdlib, no jsonschema dep); this file is the declarative spec.",
+  "type": "object",
+  "required": ["source_id", "verdict", "confidence", "depends_on_assessment", "recommended_action"],
+  "properties": {
+    "source_id": { "type": "string" },
+    "verdict": { "enum": ["irrelevant", "compatible", "breaking"] },
+    "confidence": { "enum": ["high", "medium", "low"] },
+    "depends_on_assessment": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["aspect", "changed", "evidence"],
+        "properties": {
+          "aspect": { "type": "string", "minLength": 1 },
+          "changed": { "type": "boolean" },
+          "nature": { "type": "string" },
+          "evidence": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "proposed_delta": {
+      "type": "object",
+      "required": ["asset", "edits"],
+      "properties": {
+        "asset": { "type": "string", "minLength": 1 },
+        "edits": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["from", "to", "rationale"],
+            "properties": {
+              "anchor": { "type": "string" },
+              "from": { "type": "string", "minLength": 1 },
+              "to": { "type": "string", "minLength": 1 },
+              "rationale": { "type": "string", "minLength": 1 }
+            }
+          }
+        },
+        "risk": { "type": "string" }
+      }
+    },
+    "break": {
+      "type": "object",
+      "required": ["what", "impact", "human_decision_needed"],
+      "properties": {
+        "what": { "type": "string", "minLength": 1 },
+        "impact": { "type": "string", "minLength": 1 },
+        "human_decision_needed": { "type": "string", "minLength": 1 }
+      }
+    },
+    "recommended_action": { "enum": ["bump", "apply-delta-then-bump", "escalate"] },
+    "new_absorbed_version": { "type": "object" }
+  },
+  "allOf": [
+    {
+      "$comment": "anti-rubber-stamp: compatible REQUIRES a concrete proposed_delta",
+      "if": { "properties": { "verdict": { "const": "compatible" } } },
+      "then": { "required": ["proposed_delta"] }
+    },
+    {
+      "$comment": "breaking REQUIRES a break object",
+      "if": { "properties": { "verdict": { "const": "breaking" } } },
+      "then": { "required": ["break"] }
+    },
+    {
+      "$comment": "non-irrelevant with low confidence must auto-escalate (invalid as a final verdict)",
+      "if": {
+        "allOf": [
+          { "properties": { "confidence": { "const": "low" } } },
+          { "not": { "properties": { "verdict": { "const": "irrelevant" } } } }
+        ]
+      },
+      "then": { "properties": { "recommended_action": { "const": "escalate" } } }
+    }
+  ]
+}
