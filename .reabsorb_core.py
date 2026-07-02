@@ -11,8 +11,10 @@ import hashlib
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
+import tempfile
 
 SOURCES_DIR = os.environ["OMC_SOURCES_DIR"]
 INSTALLED = os.path.expanduser(os.environ["OMC_INSTALLED_PLUGINS"])
@@ -114,6 +116,38 @@ def git_remote_commit(repo, ref):
     line = stdout.splitlines()[0] if stdout else ""
     sha = line.split()[0] if line else ""
     return (sha or None), (None if sha else "ref not found")
+
+
+def git_remote_blob(repo, ref, path):
+    """Content-addressed blob SHA of a single <path> at <ref> in a remote git repo.
+    Tracks ONE file (the discipline we absorbed), not the whole repo HEAD — so drift
+    fires only when that file changes, not on every unrelated upstream commit.
+    Uses a blobless shallow clone + `git rev-parse HEAD:<path>` (reads the tree entry;
+    the file content itself is never fetched). Returns (sha, None) or (None, error).
+    Works for any git host and for a local repo (hermetic tests)."""
+    if not repo or not path:
+        return None, "no repo/path"
+    tmp = tempfile.mkdtemp(prefix="reabsorb-blob-")
+    try:
+        clone = subprocess.run(
+            ["git", "clone", "--filter=blob:none", "--depth=1", "--no-checkout",
+             "--quiet", repo, tmp],
+            capture_output=True, text=True, timeout=60,
+        )
+        if clone.returncode != 0:
+            return None, "clone rc=%d %s" % (clone.returncode, (clone.stderr or "").strip()[:80])
+        rp = subprocess.run(
+            ["git", "-C", tmp, "rev-parse", "%s:%s" % (ref or "HEAD", path)],
+            capture_output=True, text=True, timeout=20,
+        )
+        if rp.returncode != 0:
+            return None, "path not found at %s: %s" % (ref or "HEAD", (rp.stderr or "").strip()[:60])
+        sha = rp.stdout.strip()
+        return (("blob:" + sha) if sha else None), (None if sha else "empty blob sha")
+    except Exception as ex:
+        return None, "git blob probe failed: %s" % ex
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
 
 
 def declared_schema(plugin_path, declared_probe):
@@ -227,10 +261,24 @@ def probe(prov):
 
     if st == "git-repo":
         repo = loc.get("repo", "")
-        rec_commit = str(av.get("commit", "-"))
         if (not repo) or ("<" in repo):
-            return {"status": "UNKNOWN", "recorded": rec_commit, "current": "-",
-                    "axis": "git-repo URL unpinned (fill locator.repo)"}
+            return {"status": "UNKNOWN", "recorded": str(av.get("commit", av.get("blob", "-"))),
+                    "current": "-", "axis": "git-repo URL unpinned (fill locator.repo)"}
+        # path-level tracking (a specific absorbed file) vs whole-repo HEAD tracking
+        path = dp.get("path")
+        if path:
+            rec_blob = str(av.get("blob", "-"))
+            cur_blob, err = git_remote_blob(repo, dp.get("ref", "HEAD"), path)
+            if err:
+                return {"status": "ERROR", "recorded": rec_blob[:19], "current": "-", "axis": err}
+            if ("<" in rec_blob) or (rec_blob in ("-", "None")):
+                return {"status": "UNKNOWN", "recorded": rec_blob, "current": cur_blob[:19],
+                        "axis": "recorded blob unpinned (run --bump to record %s)" % cur_blob[:19]}
+            if cur_blob != rec_blob:
+                return {"status": "DRIFTED", "recorded": rec_blob[:19], "current": cur_blob[:19],
+                        "axis": "file %s changed (%s->%s)" % (path, rec_blob[5:14], cur_blob[5:14])}
+            return {"status": "CURRENT", "recorded": rec_blob[:19], "current": cur_blob[:19], "axis": ""}
+        rec_commit = str(av.get("commit", "-"))
         cur_commit, err = git_remote_commit(repo, dp.get("ref", "HEAD"))
         if err:
             return {"status": "ERROR", "recorded": rec_commit, "current": "-", "axis": err}
@@ -371,13 +419,23 @@ def mode_bump(sid):
         if (not repo) or ("<" in repo):
             print("bump: git-repo '%s' URL 미핀 — 먼저 locator.repo 채우기." % sid)
             return 0
-        cur_commit, err = git_remote_commit(repo, dp.get("ref", "HEAD"))
-        if err:
-            print("bump: git-repo probe 실패 (%s)" % err, file=sys.stderr)
-            return 3
-        if cur_commit and cur_commit != av.get("commit"):
-            changes.append("commit %s->%s" % (str(av.get("commit"))[:12], cur_commit[:12]))
-            av["commit"] = cur_commit
+        path = dp.get("path")
+        if path:   # file-level: record the blob sha of the tracked file
+            cur_blob, err = git_remote_blob(repo, dp.get("ref", "HEAD"), path)
+            if err:
+                print("bump: git blob probe 실패 (%s)" % err, file=sys.stderr)
+                return 3
+            if cur_blob and cur_blob != av.get("blob"):
+                changes.append("blob %s->%s" % (str(av.get("blob"))[5:14], cur_blob[5:14]))
+                av["blob"] = cur_blob
+        else:
+            cur_commit, err = git_remote_commit(repo, dp.get("ref", "HEAD"))
+            if err:
+                print("bump: git-repo probe 실패 (%s)" % err, file=sys.stderr)
+                return 3
+            if cur_commit and cur_commit != av.get("commit"):
+                changes.append("commit %s->%s" % (str(av.get("commit"))[:12], cur_commit[:12]))
+                av["commit"] = cur_commit
     else:
         print("bump: source_type '%s' 는 자동 bump 미지원(수동)." % st)
         return 0

@@ -251,6 +251,28 @@ printf '{"schema":1,"id":"g2","source_type":"git-repo","locator":{"repo":"%s"},"
 out="$(OMC_SOURCES_DIR="$TMP/sources" OMC_MARKETPLACES_DIR="$TMP/mp" OMC_INSTALLED_PLUGINS="$TMP/installed.json" bash "$REABSORB" 2>&1)"; rc=$?
 assert_contains "short-SHA prefix -> CURRENT" "CURRENT" "$out"; assert_eq "short-SHA -> exit 0" "0" "$rc"
 
+echo "24) git-repo PATH probe: tracks one file (blob), not repo HEAD -> no noise from unrelated commits"
+GR3="$TMP/gitrepo3"; mkdir -p "$GR3"
+( cd "$GR3" && git init -q && git config user.email t@t && git config user.name t && \
+  echo "discipline v1" > SKILL.md && echo other > x.md && git add . && git commit -qm init ) 2>/dev/null
+BLOB="blob:$(git -C "$GR3" rev-parse HEAD:SKILL.md)"
+rm -rf "$TMP/sources"; mkdir -p "$TMP/sources/sp"
+mkprov() { printf '{"schema":1,"id":"sp","source_type":"git-repo","locator":{"repo":"%s"},"absorbed_version":{"blob":"%s"},"dependents":[{"asset":"a","depends_on":["x"],"break_if":["y"]}],"drift_probe":{"kind":"git_blob","ref":"HEAD","path":"SKILL.md"}}' "$GR3" "$1" > "$TMP/sources/sp/provenance.json"; }
+runsp() { OMC_SOURCES_DIR="$TMP/sources" bash "$REABSORB" "$@"; }
+mkprov "$BLOB"
+out="$(runsp 2>&1)"; assert_contains "path-probe recorded=current -> CURRENT" "CURRENT" "$out"
+( cd "$GR3" && echo changed > x.md && git commit -qam "unrelated commit" ) 2>/dev/null   # HEAD moves, SKILL.md unchanged
+out="$(runsp 2>&1)"; rc=$?
+assert_contains "unrelated commit -> still CURRENT (file-level, no noise)" "CURRENT" "$out"
+assert_eq "unrelated commit -> exit 0" "0" "$rc"
+( cd "$GR3" && echo "discipline v2" > SKILL.md && git commit -qam "change tracked file" ) 2>/dev/null
+out="$(runsp 2>&1)"; rc=$?
+assert_contains "tracked file changed -> DRIFTED" "DRIFTED" "$out"; assert_eq "tracked file drift -> exit 5" "5" "$rc"
+runsp --bump sp >/dev/null 2>&1
+out="$(runsp 2>&1)"; assert_contains "after --bump -> CURRENT (records new blob)" "CURRENT" "$out"
+mkprov "<run --bump to record>"
+out="$(runsp 2>&1)"; assert_contains "unpinned blob placeholder -> UNKNOWN" "UNKNOWN" "$out"
+
 echo
 echo "== $PASS passed, $FAIL failed =="
 [ "$FAIL" -eq 0 ]

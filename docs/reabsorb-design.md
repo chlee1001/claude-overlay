@@ -112,16 +112,20 @@ provenance(출처·버전·의존 기록)
 
 ### 타입 범위를 보여주는 두 인스턴스
 **completion-gate → Superpowers (결정 #3: git-repo로 추적 — 실신호 확보)**
+개념을 *적응*한 소스는 repo HEAD가 아니라 **적응한 그 파일**만 추적한다(`kind: git_blob` + `path`).
+그래야 업스트림의 무관한 커밋마다 헛드리프트가 안 나고, "가져다 쓴 그 규율"이 바뀔 때만 DRIFTED가 뜬다.
+probe는 blobless shallow clone → `git rev-parse HEAD:<path>`로 그 파일의 **blob SHA**를 비교한다.
 ```jsonc
 { "id": "superpowers-completion-discipline", "source_type": "git-repo",
-  "locator": { "repo": "https://github.com/<owner>/superpowers",   // 구현 전 실제 URL 핀
-               "tracked_paths": ["<discipline 담은 파일경로>"], "clone_state": "ls-remote" },
-  "absorbed_version": { "commit": "<흡수 당시 커밋 SHA>", "concept_ref": "verification-before-completion discipline" },
+  "locator": { "repo": "https://github.com/obra/superpowers",
+               "tracked_paths": ["skills/verification-before-completion/SKILL.md"], "clone_state": "blobless-shallow" },
+  "absorbed_version": { "blob": "blob:<흡수 당시 파일 blob SHA>", "concept_ref": "verification-before-completion discipline" },
   "dependents": [{ "asset": "patches/completion-gate/hooks/omc-completion-gate.mjs",
     "depends_on": ["규칙: 같은 턴 검증증거 없는 완료주장 차단"],
     "break_if": ["업스트림 규율 재정의(증거 범주 변경 등)"] }],
-  "drift_probe": { "kind": "git_commit", "ref": "HEAD", "diff_paths": ["<discipline 파일>"] } }
+  "drift_probe": { "kind": "git_blob", "ref": "HEAD", "path": "skills/verification-before-completion/SKILL.md" } }
 ```
+> git-repo는 두 모드: `path` 있으면 **파일 blob 단위**(적응 소스 권장), 없으면 **repo HEAD 커밋 단위**(전체 vendor).
 > concept-source/manual 티어는 모델에 남되 현재 쓰는 출처는 없음(§10). 진짜 무신호 출처 생기면 `staleness_days: 30`.
 **korean-writing → humanize-korean (명목상 "개념"이나 실제론 설치된 플러그인 → 강한 신호)**
 ```jsonc
