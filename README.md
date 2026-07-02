@@ -144,6 +144,8 @@ claude-overlay/
     executor-tdd/                # target: agents/executor.md
       target / marker / baseline.md / patched.md / baseline-version
       skill/strict-tdd/          # owned skill, copied to ~/.claude/skills/
+    ai-slop-cleaner/             # target: skill-bodies/ai-slop-cleaner/SKILL.md
+      target / marker / baseline.md / patched.md / baseline-version
     korean-writing/              # assets only (no file patch)
       rules/                     # owned rule docs, copied to ~/.claude/rules/
         korean-writing.md
@@ -275,6 +277,22 @@ The bundled `deploy.sh` registers a `PostToolUse` (Write|Edit) hook in `~/.claud
 idempotently: when a finalized plan is written (not `*.readable.md` / `open-questions.md`), it
 injects a one-line nudge to consider `/design-discovery <plan-path>`, and stays silent for every
 other write. Gated to UI-bearing plans; backend/CLI-only plans are skipped.
+
+### ai-slop-cleaner
+
+Target: `skill-bodies/ai-slop-cleaner/SKILL.md` (3-way merge patch). Extends OMC's slop taxonomy
+with a 7th category — **Comment/annotation slop** — plus a **Pass 5: Comment hygiene** that runs
+last (against final code). Three sub-kinds: unnatural AI-Korean comments (fixed against
+`writing-tropes.md` at a *terse* bar, **not** the prose-only humanize-korean orchestrator, which
+normalizes code identifiers); planning-artifact leakage (`Phase 0`/`G1`/`V1-V4` refs orphaned from
+the plan doc); and cryptic abbreviations (identifier naming stays in Pass 3, which is
+behavior-sensitive). The added **Comment Hygiene Checklist** encodes the guardrails that keep a
+comment pass regression-safe: comments are non-executable so a rewrite is behavior-safe *by
+construction* except a load-bearing denylist (`eslint-disable`, `@ts-ignore`, `noqa`, shebangs,
+typegen docstrings, doctests…); deletion-first is the tiebreaker; and a no-hallucination rule —
+if a comment's intent can't be verified from the code, delete rather than invent it. Planning-leak
+detection is regex-*candidate* + repo-resolvability grep, never regex-auto-delete. The
+institutionalized advisory lives in the `completion-gate` hook (above), not here.
 
 ## Rebuilding a baseline (if one is lost)
 
