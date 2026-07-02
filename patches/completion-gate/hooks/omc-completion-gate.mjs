@@ -13,6 +13,14 @@
  * no sign of a verification run (test/build/lint/typecheck command, or a
  * verifier/test/qa agent), block ONCE with a nudge to actually verify.
  *
+ * Secondary (advisory, non-blocking): once a completion is claimed AND verified,
+ * scan this turn's file edits for planning-artifact leakage in comments (plan
+ * step IDs like "P2 fallback", "V1-V4", "Phase 0" that mean nothing to a
+ * future reader) and surface a one-line comment-hygiene advisory. This never
+ * blocks — it is the institutionalized "code-work-finished" comment nudge. It is
+ * intentionally scoped to plan-ID leakage only (not mere Korean presence, which
+ * is normal for Korean-writing users, and not abbreviations, which are noisy).
+ *
  * Safety rails (bias toward NOT annoying the user):
  *   - Fires at most ONCE per stop chain (honors `stop_hook_active`).
  *   - Never blocks user-abort or context-limit stops.
@@ -36,6 +44,11 @@ function allow() {
 }
 function block(reason) {
   process.stdout.write(JSON.stringify({ decision: 'block', reason }));
+  process.exit(0);
+}
+// Non-blocking: let the turn end but surface a one-line advisory to the user.
+function allowWithMessage(systemMessage) {
+  process.stdout.write(JSON.stringify({ continue: true, suppressOutput: true, systemMessage }));
   process.exit(0);
 }
 
@@ -81,6 +94,34 @@ const EVIDENCE_AGENT_RE = /verifier|test-engineer|qa-tester|security-reviewer|co
 // Test-output-shaped strings pasted into the transcript also count as evidence.
 const EVIDENCE_OUTPUT_RE = /(\bPASS\b|passed|✓|0 failed|all tests pass|build succeeded|tests? (passed|ok))/i;
 
+// --- Comment-hygiene advisory vocab (planning-artifact leakage, #2 only) ----
+
+// A line that reads as a code comment (leading marker for common languages).
+const COMMENT_LINE_RE = /^\s*(\/\/|#|\/\*|\*|--|;|<!--)/;
+
+// High-precision plan-ID leakage. Deliberately COMPOUND, language-agnostic
+// phrasings only — bare tokens like "G1"/"S3" are too ambiguous (hardware pins,
+// bucket names) for an auto-advisory. Matches: "P2 fallback", "V1-V4",
+// "Phase 0", "G1 validator". Korean stage-leak (e.g. "3단계") is intentionally
+// NOT auto-triggered: it collides with legit domain terms like "2단계 인증"
+// (2FA), so it is left to the on-demand Pass 5 with its repo-resolvability grep.
+const PLAN_ID_RE =
+  /\bPhase\s?\d+\b|\bV\d\s*-\s*V\d\b|\b[GPVST]\d\s+(fallback|path|case|branch|validator|probe|step)\b/i;
+
+// Extract the added/authored text from an Edit/Write/MultiEdit tool_use input.
+function editedText(name, input) {
+  if (name === 'Write') return String(input?.content || '');
+  if (name === 'Edit') return String(input?.new_string || '');
+  if (name === 'MultiEdit' && Array.isArray(input?.edits)) {
+    return input.edits.map((e) => String(e?.new_string || '')).join('\n');
+  }
+  return '';
+}
+
+function baseName(p) {
+  return String(p || '').split('/').filter(Boolean).pop() || String(p || '');
+}
+
 // --- Helpers ---------------------------------------------------------------
 
 function isUserAbort(d) {
@@ -120,8 +161,9 @@ function textOf(content) {
  * doesn't excuse an unverified new claim.
  */
 function analyzeTranscript(transcriptPath) {
-  const out = { lastAssistantText: '', hasEvidence: false };
+  const out = { lastAssistantText: '', hasEvidence: false, commentLeakFiles: [] };
   if (!transcriptPath || !existsSync(transcriptPath)) return out;
+  const leakSet = new Set();
 
   let lines;
   try {
@@ -163,6 +205,12 @@ function analyzeTranscript(transcriptPath) {
           if (name === 'Bash' && EVIDENCE_CMD_RE.test(String(input.command || ''))) out.hasEvidence = true;
           if ((name === 'Task' || name === 'Agent') &&
               EVIDENCE_AGENT_RE.test(JSON.stringify(input))) out.hasEvidence = true;
+          if (name === 'Write' || name === 'Edit' || name === 'MultiEdit') {
+            const leaked = editedText(name, input)
+              .split('\n')
+              .some((ln) => COMMENT_LINE_RE.test(ln) && PLAN_ID_RE.test(ln));
+            if (leaked && input?.file_path) leakSet.add(baseName(input.file_path));
+          }
         }
       }
     }
@@ -173,6 +221,7 @@ function analyzeTranscript(transcriptPath) {
     }
   }
   out.lastAssistantText = lastAssistantText;
+  out.commentLeakFiles = [...leakSet];
   return out;
 }
 
@@ -183,6 +232,14 @@ const NUDGE = [
   '  2) 이 작업에 검증이 불필요하면 왜 불필요한지 한 줄로 명시하세요.',
   '그런 다음 마무리하세요. (이 게이트는 한 번만 작동합니다.)',
 ].join('\n');
+
+function commentAdvisory(files) {
+  const list = files.slice(0, 5).join(', ') + (files.length > 5 ? ', …' : '');
+  return [
+    `주석 위생 권고: 이번 턴에 편집한 주석에 계획-단계 표기(plan-ID)가 남아 있습니다 — ${list}.`,
+    '미래 개발자에겐 뜻이 통하지 않으니 ai-slop-cleaner의 Pass 5(주석 위생)로 정리를 고려하세요. (차단 아님, 권고)',
+  ].join('\n');
+}
 
 // --- Main ------------------------------------------------------------------
 
@@ -200,12 +257,20 @@ const NUDGE = [
     if (isUserAbort(data) || isContextLimit(data)) return allow();
     if (persistentModeActive()) return allow();
 
-    const { lastAssistantText, hasEvidence } = analyzeTranscript(data.transcript_path || data.transcriptPath);
+    const { lastAssistantText, hasEvidence, commentLeakFiles } =
+      analyzeTranscript(data.transcript_path || data.transcriptPath);
     if (!lastAssistantText) return allow();
     if (!CLAIM_RE.test(lastAssistantText)) return allow();
-    if (hasEvidence) return allow();
+    if (!hasEvidence) return block(NUDGE);
 
-    return block(NUDGE);
+    // Finished AND verified: surface the comment-hygiene advisory (non-blocking)
+    // if this turn's edits left plan-ID leakage in comments.
+    const skipHygiene = process.env.OMC_SKIP_COMMENT_HYGIENE === '1' ||
+      String(process.env.DISABLE_OMC || '').includes('comment-hygiene');
+    if (!skipHygiene && commentLeakFiles.length) {
+      return allowWithMessage(commentAdvisory(commentLeakFiles));
+    }
+    return allow();
   } catch {
     return allow();
   }

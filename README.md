@@ -152,7 +152,8 @@ claude-overlay/
         writing-tropes.md
     completion-gate/             # assets only (no file patch)
       hooks/                     # owned hook, copied to ~/.claude/hooks/
-        omc-completion-gate.mjs
+        omc-completion-gate.mjs  # verification gate + comment-hygiene advisory
+      tests/comment-hygiene.test.mjs  # hermetic hook regression test
       deploy.sh                  # registers the Stop hook in settings.json (idempotent)
     design-discovery/            # assets only (no file patch)
       skill/design-discovery/    # owned skill, copied to ~/.claude/skills/
@@ -256,6 +257,16 @@ bundles the hook (`hooks/omc-completion-gate.mjs`) and a `deploy.sh` that regist
 `~/.claude/settings.json` idempotently. Adapted from Superpowers' verification-before-completion
 discipline; OMC had no main-loop gate for this. (Previously a standalone `completion-gate/` folder;
 folded in here so one tool deploys and restores it with everything else.)
+
+The same hook also carries a **non-blocking comment-hygiene advisory** (the institutionalized
+"code-work-finished" nudge for the `ai-slop-cleaner` Pass 5). Once a completion is claimed *and*
+verified, it scans the turn's file edits for planning-artifact leakage in comments — plan step IDs
+like `P2 fallback` / `V1-V4` / `Phase 0` that mean nothing to a future reader — and, if found,
+surfaces a one-line `systemMessage` naming the files. It never blocks (advisory ≠ gate), fires only
+on high-precision compound, language-agnostic plan-IDs (not mere Korean presence, normal for this
+user; Korean stage-leak like `3단계` is left to the manual Pass 5 grep since it collides with legit
+terms like `2단계 인증`; and no noisy abbreviations), and is disabled by `OMC_SKIP_COMMENT_HYGIENE=1`.
+Covered by `tests/comment-hygiene.test.mjs` (hermetic, transcript-driven).
 
 ### design-discovery
 
