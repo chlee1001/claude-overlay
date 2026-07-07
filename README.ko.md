@@ -123,6 +123,15 @@ claude-overlay/
     design-discovery/            # 자산만 (파일 패치 없음)
       skill/design-discovery/    # 소유 스킬, ~/.claude/skills/ 로 복사됨
       deploy.sh                  # 플랜 저장 제안 PostToolUse 훅을 settings.json에 멱등 등록
+    ai-slop-cleaner/             # 대상: skill-bodies/ai-slop-cleaner/SKILL.md
+      target / marker / baseline.md / patched.md
+    completion-gate/             # 자산만 (파일 패치 없음)
+      hooks/                     # 소유 훅, ~/.claude/hooks/ 로 복사됨
+        omc-completion-gate.mjs
+      deploy.sh                  # Stop 훅을 settings.json에 멱등 등록
+    code-minimalism/             # 자산만 (파일 패치 없음)
+      rules/                     # 소유 규칙 문서, ~/.claude/rules/ 로 복사됨
+        code-minimalism.md
     reabsorb/                    # 자산만 (파일 패치 없음)
       skill/reabsorb/            # 소유 /reabsorb 스킬, ~/.claude/skills/ 로 복사됨
 ```
@@ -215,6 +224,47 @@ X/Reddit/HN UX 리서치, `insane-design` 토큰 기반 `design.md`, HTML 목업
 훅을 `~/.claude/settings.json`에 멱등 등록한다: 확정 플랜이 저장되면(`*.readable.md`/`open-questions.md`
 제외) `/design-discovery <plan-path>`를 고려하라는 한 줄을 주입하고, 그 외 모든 쓰기엔 침묵한다. UI
 표면이 있는 플랜에만 작동하고 백엔드/CLI 전용은 건너뛴다.
+
+### completion-gate
+
+자산만 담는다 — 플러그인 파일은 건드리지 않는다. **완료 하드 게이트**다. 같은 턴에 검증 증거
+(테스트/빌드/린트 명령, verifier/qa 서브에이전트, `PASS`/`0 failed` 같은 테스트 출력) 없이
+"done/fixed/완료/통과" 주장을 하면 Stop 훅이 막고, 끝내기 전에 검증 한 번을 하라고 권한다. stop당
+최대 한 번 발동하고, ralph/ultrawork/autopilot/team 루프에서는 빠지며, `OMC_SKIP_COMPLETION_GATE=1`로
+끈다. 훅(`hooks/omc-completion-gate.mjs`)과 이를 `~/.claude/settings.json`에 멱등 등록하는 `deploy.sh`를
+담는다. Superpowers의 "완료 전 검증" 규율에서 적응했다 — OMC엔 메인 루프 게이트가 없었다.
+
+같은 훅은 **비차단 코멘트 위생 권고**(ai-slop-cleaner Pass 5의 "코드 작업 끝" 넛지)도 실는다. 완료가
+검증까지 된 뒤, 그 턴의 파일 편집에서 계획 유출 주석(미래 독자에게 의미 없는 `P2 fallback`/`V1-V4`/
+`Phase 0` 같은 계획 단계 ID)을 훑고, 있으면 파일명을 짚는 한 줄 `systemMessage`를 띄운다. 절대 막지
+않고(권고≠게이트), 언어에 무관한 고정밀 계획 ID 패턴에만 발동하며(한글 존재 자체엔 반응 안 함),
+`OMC_SKIP_COMMENT_HYGIENE=1`로 끈다.
+
+### ai-slop-cleaner
+
+대상: `skill-bodies/ai-slop-cleaner/SKILL.md`(3방향 머지 패치). OMC 슬롭 분류에 7번째 범주 —
+**코멘트/주석 슬롭** — 과 최종 코드를 대상으로 마지막에 도는 **Pass 5: 코멘트 위생**을 더한다. 세
+하위 종류: 부자연스러운 AI-한국어 주석(prose 전용 humanize-korean 오케스트레이터가 아니라
+`writing-tropes.md` 기준으로 *간결하게* 고침), 계획 유출(`Phase 0`/`G1`/`V1-V4`가 계획 문서에서 떨어져
+나온 것), 암호 같은 약어. 함께 넣은 **코멘트 위생 체크리스트**가 안전장치를 담는다: 주석은 비실행이라
+재작성이 구조상 동작 안전하지만 load-bearing 항목(`eslint-disable`, `@ts-ignore`, `noqa`, shebang,
+typegen docstring, doctest…)은 예외로 손대지 않는다. 삭제 우선이 원칙이고, 의도를 코드에서 확인 못 하면
+지어내지 말고 지운다. 계획 유출은 정규식 *후보* + 저장소 grep 해소 확인이지 정규식 자동삭제가 아니다.
+
+### code-minimalism
+
+자산만 담는다 — 플러그인 파일은 건드리지 않는다. **ponytail**의 "lazy senior dev" 규율
+(`DietrichGebert/ponytail`, `AGENTS.md`)을 소유 규칙 하나(`code-minimalism.md`)로 흡수해
+`~/.claude/rules/`에 배포한다. OMC 기본 규칙 `karpathy-guidelines.md`에 없는 네 가지만 뽑았다:
+7단 의사결정 사다리(YAGNI → 재사용 → stdlib → native → 의존성 → 한 줄 → 최소 코드), **안전 플로어**
+(trust boundary 입력 검증·데이터 손실 방지·보안·접근성·하드웨어 캘리브레이션과 명시 요청은 절대 안
+깎는다), 증상 아닌 근본원인 버그픽스(모든 caller를 grep해 공용 함수를 한 번 고침), `simplification:`
+주석 규약(의도적 단축은 상한과 업그레이드 경로를 주석에 밝힘). **코드 작업 한정**이고 마인드셋은
+`karpathy-guidelines.md`를 참조해 두 규칙이 중복 없이 합쳐진다. 플러그인의 intensity 레벨·statusline·
+mode-tracker·MCP는 개인 오버레이엔 과잉이라 흡수하지 않았다. 드리프트 추적은 `sources/ponytail/`
+(git-repo, `AGENTS.md`에 `git_blob` probe)에 등록해, 업스트림 사다리나 안전 플로어가 바뀌면
+`reabsorb.sh`가 잡는다. 파생 개념이라 `ponytail`이 아니라 `code-minimalism`으로 이름 붙였다 —
+`korean-writing` ← humanize-korean 선례와 같다. OMC가 세션 시작 시 읽으므로 새 세션부터 활성화된다.
 
 ## 원본 기준 다시 만들기 (잃어버렸을 때)
 
