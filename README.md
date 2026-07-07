@@ -158,6 +158,9 @@ claude-overlay/
     design-discovery/            # assets only (no file patch)
       skill/design-discovery/    # owned skill, copied to ~/.claude/skills/
       deploy.sh                  # registers the PostToolUse plan-save suggestion hook (idempotent)
+    code-minimalism/             # assets only (no file patch)
+      rules/                     # owned rule doc, copied to ~/.claude/rules/
+        code-minimalism.md
 ```
 
 ## Re-absorption (`reabsorb.sh`) — the sibling flow for absorbed external sources
@@ -304,6 +307,25 @@ typegen docstrings, doctests…); deletion-first is the tiebreaker; and a no-hal
 if a comment's intent can't be verified from the code, delete rather than invent it. Planning-leak
 detection is regex-*candidate* + repo-resolvability grep, never regex-auto-delete. The
 institutionalized advisory lives in the `completion-gate` hook (above), not here.
+
+### code-minimalism
+
+Assets only — no plugin file is patched. Bundles one rule doc (`code-minimalism.md`) and
+deploys it to `~/.claude/rules/`. Absorbed from **ponytail**'s "lazy senior dev" discipline
+(`DietrichGebert/ponytail`, `AGENTS.md`), distilled to the four things OMC's stock
+`karpathy-guidelines.md` rule lacks: the 7-rung decision ladder (YAGNI → reuse → stdlib →
+native → dependency → one-line → minimal), a **safety floor** (input validation at trust
+boundaries, data-loss error handling, security, accessibility, hardware calibration, and
+anything explicitly requested are never simplified away), root-cause-not-symptom bug fixing
+(grep every caller, fix the shared function once), and the `simplification:` comment
+convention (a deliberate shortcut names its ceiling + upgrade path). Scoped to **code work
+only** and cross-references `karpathy-guidelines.md` for the mindset so the two rules compose
+without duplication. The plugin's intensity levels / statusline / mode-tracker / MCP were
+deliberately not absorbed (overkill for a personal overlay). Registered for drift tracking in
+`sources/ponytail/` (git-repo, `git_blob` probe on `AGENTS.md`), so `reabsorb.sh` flags a
+change to the upstream ladder or safety floor. Named `code-minimalism`, not `ponytail`, since
+it is a derivative concept — same convention as `korean-writing` ← humanize-korean. Loaded by
+OMC at session start, so a fresh session activates it.
 
 ## Rebuilding a baseline (if one is lost)
 

@@ -1,0 +1,42 @@
+{
+  "schema": 1,
+  "id": "ponytail",
+  "display_name": "ponytail — lazy senior dev / code-minimalism discipline (DietrichGebert/ponytail)",
+  "source_type": "git-repo",
+  "absorbed_at": "2026-07-07",
+  "locator": {
+    "repo": "https://github.com/DietrichGebert/ponytail",
+    "tracked_paths": [
+      "AGENTS.md"
+    ],
+    "clone_state": "blobless-shallow"
+  },
+  "absorbed_version": {
+    "plugin_version": "4.8.4",
+    "commit": "1b2760d384c44e573a9d8c7a729fac616e5c3a76",
+    "blob": "blob:426109e6f0542171c2aa18da169bd311508684e6",
+    "concept_ref": "lazy-senior-dev discipline: 7-rung decision ladder + safety floor + root-cause bug fix + simplification-comment convention"
+  },
+  "dependents": [
+    {
+      "asset": "patches/code-minimalism/rules/code-minimalism.md",
+      "depends_on": [
+        "7단 의사결정 사다리(YAGNI→재사용→stdlib→native→dep→one-line→minimal)",
+        "안전 플로어(trust boundary·데이터손실·보안·a11y·하드웨어 캘리브레이션은 절대 안 깎음)",
+        "버그픽스=근본원인(모든 caller grep, 공용함수 한 번 수정)",
+        "의도적 단순화 주석 규약(상한+업그레이드 경로 명시)"
+      ],
+      "break_if": [
+        "사다리 순서/단계 재정의",
+        "안전 플로어 범주 변경(항목 추가/삭제)",
+        "'lazy senior dev' 규율 자체의 재정의"
+      ]
+    }
+  ],
+  "notes": "정본은 AGENTS.md(= .cursor/rules/ponytail.mdc = .github/copilot-instructions.md, 바이트 동일). intensity(lite/full/ultra)·statusline·mode-tracker·MCP·caveman 페어링은 흡수하지 않음(개인 오버레이엔 과잉). 이름을 'ponytail'로 배포하지 않고 파생 개념으로 code-minimalism 명명 — korean-writing←humanize-korean 선례와 동일.",
+  "drift_probe": {
+    "kind": "git_blob",
+    "ref": "HEAD",
+    "path": "AGENTS.md"
+  }
+}
