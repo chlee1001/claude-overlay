@@ -1,0 +1,35 @@
+{
+  "schema": 1,
+  "id": "ouroboros-ambiguity-floor",
+  "display_name": "Ouroboros — per-dimension ambiguity clarity floor (Q00/ouroboros)",
+  "source_type": "git-repo",
+  "absorbed_at": "2026-07-13",
+  "locator": {
+    "repo": "https://github.com/Q00/ouroboros",
+    "tracked_paths": [
+      "src/ouroboros/bigbang/ambiguity.py"
+    ],
+    "clone_state": "blobless-shallow"
+  },
+  "absorbed_version": {
+    "concept_ref": "per-dimension completion floor — threshold 0.2; floors goal 0.75 / constraint 0.65 / criteria 0.70 / context 0.60; streak 2; weights 40/30/30 (greenfield) & 35/25/25/15 (brownfield); ambiguity = 1 - Σ(clarity·weight)"
+  },
+  "dependents": [
+    {
+      "asset": "patches/deep-interview-floor/hooks/omc-di-floor.mjs",
+      "depends_on": [
+        "규칙: 가중 ambiguity가 threshold 이하여도 개별 차원 clarity가 floor 미만이면 crystallize 차단 (ambiguity.py get_completion_floor_failures에서 적응)"
+      ],
+      "break_if": [
+        "OMC deep-interview-state.json 차원 점수 위치/키명 변경",
+        "OMC가 자체 ambiguity floor 도입 (중복)",
+        "Ouroboros ambiguity.py 상수 변경 (COMPATIBLE 델타 검토)"
+      ]
+    }
+  ],
+  "drift_probe": {
+    "kind": "git_blob",
+    "ref": "HEAD",
+    "path": "src/ouroboros/bigbang/ambiguity.py"
+  }
+}
