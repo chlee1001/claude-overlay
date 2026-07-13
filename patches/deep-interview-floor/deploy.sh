@@ -7,10 +7,12 @@
 # settings.json is user-owned and survives OMC updates, so this is a one-time
 # registration that stays put — re-running is a safe no-op (already-registered).
 #
-# The matcher targets the state-write MCP tool (regex-matched against the tool
-# name mcp__plugin_oh-my-claudecode_t__state_write). The in-hook identity re-gate
-# (_meta.mode === 'deep-interview') is the real guard, so an over-broad matcher
-# still self-limits.
+# The matcher targets the state-write MCP tool. OMC's state_write is an MCP tool
+# named mcp__plugin_oh-my-claudecode_t__state_write; a bare "state_write" matcher is
+# an EXACT match and never fires for MCP tools (Claude Code treats a matcher with no
+# regex metacharacters as a whole-string match), so we use the unanchored regex
+# mcp__.*__state_write. The in-hook identity re-gate (_meta.mode === 'deep-interview')
+# is the real guard. Re-running self-heals an old/incorrect matcher.
 #
 # Honors: OMC_HOOKS_DIR (where the hook was mirrored), OMC_SETTINGS (testing override).
 set -euo pipefail
@@ -37,23 +39,37 @@ if os.path.exists(settings_path):
 hooks = data.setdefault("hooks", {})
 post = hooks.setdefault("PostToolUse", [])
 
-def has_marker(arr):
-    return any(marker in hk.get("command", "")
-              for block in arr for hk in block.get("hooks", []))
+# state_write is an MCP tool (mcp__plugin_oh-my-claudecode_t__state_write); a bare
+# "state_write" is an exact match that never fires for MCP tools, so match the
+# mcp__<server>__state_write name with an unanchored regex.
+MATCHER = "mcp__.*__state_write"
 
-if has_marker(post):
+def find_block(arr):
+    for block in arr:
+        if any(marker in hk.get("command", "") for hk in block.get("hooks", [])):
+            return block
+    return None
+
+block = find_block(post)
+if block is not None and block.get("matcher") == MATCHER:
     print("settings.json: already-registered")
     sys.exit(0)
 
-post.append({
-    "matcher": "state_write",
-    "hooks": [{"type": "command", "command": f'"{node_bin}" "{dest}"', "timeout": 5}],
-})
+if block is not None:
+    block["matcher"] = MATCHER  # self-heal an old/incorrect matcher (e.g. bare "state_write")
+    status = "settings.json: matcher-updated"
+else:
+    post.append({
+        "matcher": MATCHER,
+        "hooks": [{"type": "command", "command": f'"{node_bin}" "{dest}"', "timeout": 5}],
+    })
+    status = "settings.json: registered (PostToolUse hook)"
+
 if os.path.exists(settings_path):
     shutil.copy2(settings_path, settings_path + ".bak")
 os.makedirs(os.path.dirname(settings_path), exist_ok=True)
 with open(settings_path, "w") as f:
     json.dump(data, f, indent=2)
     f.write("\n")
-print("settings.json: registered (PostToolUse hook)")
+print(status)
 PY
