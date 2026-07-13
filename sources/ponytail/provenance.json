@@ -31,6 +31,20 @@
         "안전 플로어 범주 변경(항목 추가/삭제)",
         "'lazy senior dev' 규율 자체의 재정의"
       ]
+    },
+    {
+      "asset": "patches/executor-minimalism/patched.md",
+      "note": "동일 사다리+안전 플로어를 executor agent 정의(<Code_Minimalism> 블록)에 내장 — rule은 MAIN 세션에만 주입되고 서브에이전트/compaction을 못 넘기므로. executor-tdd의 <Executor_TDD_Mode> 선례와 같은 논리. agents/executor.md에 executor-tdd와 스택됨(따라서 apply.sh가 항상 drift 오탐 보고; NOTES.md 참조, --update-baseline 금지).",
+      "depends_on": [
+        "7단 의사결정 사다리(YAGNI→재사용→stdlib→native→dep→one-line→minimal)",
+        "안전 플로어 범주(understand·trust boundary·데이터손실·보안·a11y·하드웨어 캘리브레이션·명시 유지)",
+        "버그픽스=근본원인(모든 caller grep, 공용함수 한 번 수정)",
+        "의도적 단순화 주석 규약(simplification:, 상한+업그레이드 경로)"
+      ],
+      "break_if": [
+        "사다리 순서/단계 재정의",
+        "안전 플로어 범주 변경(항목 추가/삭제)"
+      ]
     }
   ],
   "notes": "정본은 AGENTS.md(= .cursor/rules/ponytail.mdc = .github/copilot-instructions.md, 바이트 동일). intensity(lite/full/ultra)·statusline·mode-tracker·MCP·caveman 페어링은 흡수하지 않음(개인 오버레이엔 과잉). 이름을 'ponytail'로 배포하지 않고 파생 개념으로 code-minimalism 명명 — korean-writing←humanize-korean 선례와 동일.",

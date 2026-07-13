@@ -327,6 +327,22 @@ change to the upstream ladder or safety floor. Named `code-minimalism`, not `pon
 it is a derivative concept — same convention as `korean-writing` ← humanize-korean. Loaded by
 OMC at session start, so a fresh session activates it.
 
+### executor-minimalism
+
+Patches `agents/executor.md`, embedding the same ponytail discipline as a `<Code_Minimalism>`
+block directly in the executor agent's role definition. The `code-minimalism` rule (above) only
+reaches the **main session** via the CLAUDE.md rules block — it is *not* part of a subagent's
+own system prompt, and can be dropped when a long ralph/team/ultrawork loop compacts context.
+Embedding it in the agent definition makes it structural: every executor spawn carries the
+7-rung ladder + safety floor in its own prompt, surviving both the subagent boundary and
+mid-loop compaction. Same rationale and pattern as `executor-tdd`'s `<Executor_TDD_Mode>` block
+(a discipline that must live in the subagent, not the orchestrator). Stacks on the **same target**
+as `executor-tdd`, so `apply.sh` always reports this patch as *"upstream drifted, merged cleanly"* —
+that is expected (the tdd block is always in the live target); **never `--update-baseline` it**, or
+the pristine `baseline.md` gets polluted with tdd content (see `patches/executor-minimalism/NOTES.md`).
+Registered as a second dependent in `sources/ponytail/provenance.json` so a ponytail drift flags
+this block too. Agent defs load at session start, so a fresh session activates it.
+
 ## Rebuilding a baseline (if one is lost)
 
 A `baseline.md` is just the pristine plugin file at the version you patched against.
