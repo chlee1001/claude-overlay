@@ -1,3 +1,7 @@
+---
+alwaysApply: true
+---
+
 # Code Minimalism Rules
 
 Applies to **code work only** — writing, adding, refactoring, fixing, reviewing code,

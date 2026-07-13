@@ -132,6 +132,8 @@ claude-overlay/
     code-minimalism/             # 자산만 (파일 패치 없음)
       rules/                     # 소유 규칙 문서, ~/.claude/rules/ 로 복사됨
         code-minimalism.md
+    executor-minimalism/         # 대상: agents/executor.md (executor-tdd와 스택)
+      target / marker / baseline.md / patched.md / NOTES.md
     reabsorb/                    # 자산만 (파일 패치 없음)
       skill/reabsorb/            # 소유 /reabsorb 스킬, ~/.claude/skills/ 로 복사됨
 ```
@@ -265,6 +267,24 @@ mode-tracker·MCP는 개인 오버레이엔 과잉이라 흡수하지 않았다.
 (git-repo, `AGENTS.md`에 `git_blob` probe)에 등록해, 업스트림 사다리나 안전 플로어가 바뀌면
 `reabsorb.sh`가 잡는다. 파생 개념이라 `ponytail`이 아니라 `code-minimalism`으로 이름 붙였다 —
 `korean-writing` ← humanize-korean 선례와 같다. OMC가 세션 시작 시 읽으므로 새 세션부터 활성화된다.
+
+### executor-minimalism
+
+`agents/executor.md`를 패치해서 위 code-minimalism과 같은 ponytail 규율을 `<Code_Minimalism>`
+블록으로 executor 에이전트의 역할 정의에 직접 박는다. 규칙 문서(위 code-minimalism)는 CLAUDE.md
+규칙 블록을 타고 **메인 세션에만** 닿을 뿐, 서브에이전트 자신의 시스템 프롬프트에는 들어가지 않는다.
+ralph·team·ultrawork 루프가 길어져 컨텍스트가 compaction되면 아예 사라질 수도 있다. 에이전트 정의에
+박아두면 규율이 구조가 된다 — executor를 스폰할 때마다 7단 사다리와 안전 플로어가 그 자신의
+프롬프트에 실려 서브에이전트 경계도 루프 중간 compaction도 넘긴다. 오케스트레이터가 아니라
+서브에이전트 안에 살아야 하는 규율이라는 점에서 executor-tdd의 `<Executor_TDD_Mode>` 블록과 같은
+논리, 같은 패턴이다.
+
+executor-tdd와 **같은 대상 파일**에 겹쳐 얹는다. 그래서 `apply.sh`는 이 패치를 늘 "upstream drifted,
+merged cleanly"로 보고한다 — 정상이다. 라이브 대상에는 tdd 블록이 항상 들어 있기 때문이다. 여기서
+**`--update-baseline`은 절대 하지 마라.** 하면 손대지 않은 `baseline.md`에 tdd 내용이 섞여 오염된다
+(`patches/executor-minimalism/NOTES.md` 참고). `sources/ponytail/provenance.json`에 두 번째 dependent로
+등록해 뒀다. ponytail이 드리프트하면 이 블록도 함께 걸린다. 에이전트 정의는 세션 시작 때 로드되므로
+새 세션부터 활성화된다.
 
 ## 원본 기준 다시 만들기 (잃어버렸을 때)
 
