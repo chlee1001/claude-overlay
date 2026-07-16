@@ -42,5 +42,15 @@
 | `ponytail` | git-repo | DietrichGebert/ponytail | `1b2760d384c4` |
 | `superpowers-completion-discipline` | git-repo | obra/superpowers | `2f14076e59e6` |
 
+## Owned rules & hooks (mirrored verbatim, survive OMC updates)
+
+| kind | file | from bundle | deployed to |
+|---|---|---|---|
+| hook | `omc-completion-gate.mjs` | `completion-gate` | `~/.claude/hooks` |
+| rule | `code-minimalism.md` | `code-minimalism` | `~/.claude/rules` |
+| rule | `korean-writing.md` | `korean-writing` | `~/.claude/rules` |
+| rule | `vercel-skills-routing.md` | `vercel-skills-routing-rule` | `~/.claude/rules` |
+| rule | `writing-tropes.md` | `korean-writing` | `~/.claude/rules` |
+
 ---
-_9 absorbed skill(s), 9 file patch(es), 11 provenance source(s)._
+_9 absorbed skill(s), 9 file patch(es), 5 owned rule/hook(s), 11 provenance source(s)._

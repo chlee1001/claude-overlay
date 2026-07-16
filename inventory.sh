@@ -61,6 +61,14 @@ for tf in glob.glob(os.path.join(P, "*", "target")):
     marker = open(mf).read().strip() if os.path.exists(mf) else "-"
     patches.append((pname, target, marker))
 
+# --- owned rules & hooks: patches/<pname>/rules|hooks/<file> (asset-only, no target/marker) ---
+assets = []  # (kind, fname, pname, dest)
+for kind, sub, dest in (("rule", "rules", "~/.claude/rules"), ("hook", "hooks", "~/.claude/hooks")):
+    for af in glob.glob(os.path.join(P, "*", sub, "*")):
+        if not os.path.isfile(af): continue
+        pname = os.path.basename(os.path.dirname(os.path.dirname(af)))
+        assets.append((kind, os.path.basename(af), pname, dest))
+
 # --- routing map: which patched.md blocks mention each owned skill name ---
 def routers_for(skill):
     hits = []
@@ -130,9 +138,19 @@ if orphan:
         lines.append("| `%s` | %s | %s | `%s` |" % (i, prov.get("source_type", "-"), repo, pin))
     lines.append("")
 
+# Section D: owned rules & hooks (asset-only bundles, invisible to the patch/source tables)
+if assets:
+    lines.append("## Owned rules & hooks (mirrored verbatim, survive OMC updates)")
+    lines.append("")
+    lines.append("| kind | file | from bundle | deployed to |")
+    lines.append("|---|---|---|---|")
+    for kind, fname, pname, dest in sorted(assets):
+        lines.append("| %s | `%s` | `%s` | `%s` |" % (kind, fname, pname, dest))
+    lines.append("")
+
 lines.append("---")
-lines.append("_%d absorbed skill(s), %d file patch(es), %d provenance source(s)._" %
-             (len(bundles), len(patches), len(sources)))
+lines.append("_%d absorbed skill(s), %d file patch(es), %d owned rule/hook(s), %d provenance source(s)._" %
+             (len(bundles), len(patches), len(assets), len(sources)))
 print("\n".join(lines))
 PY
 )"
