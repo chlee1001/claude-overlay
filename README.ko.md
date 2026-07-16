@@ -99,6 +99,8 @@ claude-overlay/
   apply.sh                       # 3방향 재적용 스크립트
   reabsorb.sh                    # 흡수한 외부 원본 드리프트 감지 (사이드 플로우)
   .reabsorb_core.py              # reabsorb detect/triage/bump/validate 코어 (순수 stdlib)
+  inventory.sh                   # INVENTORY.md 재생성 — 흡수물 전체 지도 (외우지 말고 돌려라)
+  INVENTORY.md                   # 자동 생성: 흡수 스킬 + 원본 + 핀 + 라우팅 (손으로 고치지 말 것)
   verdict.schema.json            # architect triage verdict 계약 (고무도장 방지)
   sources/<id>/provenance.json   # 무엇을·어디서@버전·어느 자산이 무엇에 의존하는지 기록
   tests/run.sh                   # reabsorb 테스트 하네스 (env override fixture)
@@ -136,7 +138,29 @@ claude-overlay/
       target / marker / baseline.md / patched.md / NOTES.md
     reabsorb/                    # 자산만 (파일 패치 없음)
       skill/reabsorb/            # 소유 /reabsorb 스킬, ~/.claude/skills/ 로 복사됨
+    vercel-react-best-practices/ # 자산만 (소유 스킬 번들)
+      skill/vercel-react-best-practices/   # upstream 그대로 + LICENSE + ATTRIBUTION.md
+    vercel-web-design-guidelines/ …        # (+ composition-patterns, react-native-skills, react-view-transitions)
+    vercel-skills-executor/      # 대상: agents/executor.md  (Skill() 호출 라우팅 블록)
+    vercel-skills-code-reviewer/ # 대상: agents/code-reviewer.md
+    vercel-skills-omc-reference/ # 대상: skill-bodies/omc-reference/SKILL.md (when→which 표)
 ```
+
+## 인벤토리 — 무엇을 흡수했나 (외우지 말고 생성하라)
+
+흡수한 팩이 쌓일수록 뭘 어디서 가져왔고 어떻게 연결했는지 기억하기 어렵다. 손으로 관리하지 말고 다시 뽑아라:
+
+```
+./inventory.sh          # provenance + patches 에서 INVENTORY.md 를 다시 쓰고 출력한다
+```
+
+`INVENTORY.md`가 단일 지도다: 흡수한 스킬마다 원본과 핀 커밋, 드리프트 프로브, 그리고 어느 OMC 에이전트가
+그 스킬로 라우팅되는지 — 여기에 모든 파일 패치와 그 밖의 흡수 원본까지 담는다. `sources/*/provenance.json` +
+`patches/*`에서 파생하므로 손으로 쓴 목록처럼 어긋날 일이 없다. 명령어 세 개가 전체 수명주기를 아우른다:
+
+- `./inventory.sh` — 뭘 갖고 있고 어떻게 연결됐나? (오프라인, 즉시)
+- `./reabsorb.sh` — 어느 원본이 내가 배포한 버전보다 앞서 나갔나? (실시간 드리프트 확인)
+- `./apply.sh` — OMC 업데이트나 재흡수 뒤 전체 재배포
 
 ## 재흡수 (`reabsorb.sh`) — 흡수한 외부 원본을 위한 사이드 플로우
 
@@ -285,6 +309,18 @@ merged cleanly"로 보고한다 — 정상이다. 라이브 대상에는 tdd 블
 (`patches/executor-minimalism/NOTES.md` 참고). `sources/ponytail/provenance.json`에 두 번째 dependent로
 등록해 뒀다. ponytail이 드리프트하면 이 블록도 함께 걸린다. 에이전트 정의는 세션 시작 때 로드되므로
 새 세션부터 활성화된다.
+
+### vercel-skills-* (Vercel 스킬 팩 + 라우팅)
+
+[`vercel-labs/agent-skills`](https://github.com/vercel-labs/agent-skills)(MIT)에서 스킬 다섯 개를 그대로
+흡수한 lazy 소유 스킬이다. 각각 `patches/vercel-<이름>/skill/` 아래 소유 번들이고, 자기 몫의
+`sources/vercel-<이름>/provenance.json`으로 핀 커밋 대비 드리프트를 추적한다. 라우팅은 **위험 계층화**로
+나눴다: 미스가 나쁜 코드를 배포로 흘려보내는 레인은 두 에이전트 패치로 스킬 로드를 보장한다 —
+`vercel-skills-executor`(구현 레인)와 `vercel-skills-code-reviewer`(리뷰 레인). 반면 `vercel-skills-omc-reference`는
+omc-reference 본문에 *when→which* 표를 더해 자문 레인인 `architect`/`designer`까지 아우른다(best-effort, 자체 패치 없음).
+`vercel-skills-executor`는 위 executor 패치 두 개와 같은 `agents/executor.md`에 스택되므로 이것도 늘
+*"drifted, merged cleanly"*로 뜬다 — 정상이다. **절대 `--update-baseline` 하지 마라.** 현재 스킬 목록·핀·라우팅은
+여기 중복하지 않고 **`INVENTORY.md`**(`./inventory.sh`)에 둔다.
 
 ## 원본 기준 다시 만들기 (잃어버렸을 때)
 

@@ -125,6 +125,8 @@ claude-overlay/
   upstream-changes.sh            # shows what the OMC update changed in patched files (read-only)
   reabsorb.sh                    # re-absorption drift detector for absorbed EXTERNAL sources (sibling flow)
   .reabsorb_core.py              # reabsorb detect/triage/bump/validate core (pure stdlib)
+  inventory.sh                   # regenerates INVENTORY.md — the map of everything absorbed (run it, don't memorize)
+  INVENTORY.md                   # auto-generated: absorbed skills + source + pin + routing (never hand-edit)
   verdict.schema.json            # architect triage verdict contract (anti-rubber-stamp)
   sources/<id>/provenance.json   # what we absorbed, from which source@version, which assets depend on what
   tests/run.sh                   # hermetic reabsorb test harness (fixtures via env overrides)
@@ -161,7 +163,31 @@ claude-overlay/
     code-minimalism/             # assets only (no file patch)
       rules/                     # owned rule doc, copied to ~/.claude/rules/
         code-minimalism.md
+    vercel-react-best-practices/ # assets only (owned skill bundle)
+      skill/vercel-react-best-practices/   # verbatim upstream + LICENSE + ATTRIBUTION.md
+    vercel-web-design-guidelines/ …        # (+ composition-patterns, react-native-skills, react-view-transitions)
+    vercel-skills-executor/      # target: agents/executor.md  (Skill()-invoke routing block)
+    vercel-skills-code-reviewer/ # target: agents/code-reviewer.md
+    vercel-skills-omc-reference/ # target: skill-bodies/omc-reference/SKILL.md (when→which table)
 ```
+
+## Inventory — what's absorbed (generate it, don't memorize it)
+
+As absorbed packs pile up it gets hard to remember what came from where and how it's wired.
+Do not track that by hand — regenerate it:
+
+```
+./inventory.sh          # rewrites INVENTORY.md from provenance + patches, then prints it
+```
+
+`INVENTORY.md` is the single map: every absorbed skill, its upstream + pinned commit, its
+drift-probe, and which OMC agents route to it — plus all file patches and other absorbed sources.
+It derives from `sources/*/provenance.json` + `patches/*`, so it never drifts out of sync the way a
+hand-written list would. Three commands cover the whole lifecycle:
+
+- `./inventory.sh` — what do I have, and how is it wired? (offline, instant)
+- `./reabsorb.sh` — has any upstream moved past what I shipped? (live drift check)
+- `./apply.sh` — (re)deploy everything after an OMC update or a re-absorption
 
 ## Re-absorption (`reabsorb.sh`) — the sibling flow for absorbed external sources
 
@@ -342,6 +368,19 @@ that is expected (the tdd block is always in the live target); **never `--update
 the pristine `baseline.md` gets polluted with tdd content (see `patches/executor-minimalism/NOTES.md`).
 Registered as a second dependent in `sources/ponytail/provenance.json` so a ponytail drift flags
 this block too. Agent defs load at session start, so a fresh session activates it.
+
+### vercel-skills-* (Vercel skill packs + routing)
+
+Five lazy owned skills absorbed verbatim from [`vercel-labs/agent-skills`](https://github.com/vercel-labs/agent-skills)
+(MIT), each an owned bundle under `patches/vercel-<name>/skill/` with its own
+`sources/vercel-<name>/provenance.json` drift-tracked against the pinned commit. Routing is
+**risk-tiered**: two agent patches guarantee the skills load where a miss ships bad code —
+`vercel-skills-executor` (implement lane) and `vercel-skills-code-reviewer` (review lane) — while
+`vercel-skills-omc-reference` adds a *when→which* table to the omc-reference body for the advisory
+`architect`/`designer` lanes (best-effort, no own patch). `vercel-skills-executor` stacks on
+`agents/executor.md` alongside the two executor patches above, so it also always reports *"drifted,
+merged cleanly"* — expected; **never `--update-baseline` it**. The current skill list, pins, and
+routing are in **`INVENTORY.md`** (`./inventory.sh`), not duplicated here.
 
 ## Rebuilding a baseline (if one is lost)
 
