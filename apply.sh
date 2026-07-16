@@ -258,6 +258,14 @@ for dscript in "$PATCHES_DIR"/*/deploy.sh; do
   fi
 done
 
+# --- Refresh the inventory map so it never goes stale after a deploy ---
+# INVENTORY.md is derived from provenance + patches; regenerate on every --write so a newly
+# absorbed skill shows up without anyone remembering to run inventory.sh by hand.
+if [ $WRITE -eq 1 ] && [ -x "$SCRIPT_DIR/inventory.sh" ]; then
+  echo
+  "$SCRIPT_DIR/inventory.sh" >/dev/null 2>&1 && echo "inventory: INVENTORY.md refreshed"
+fi
+
 # --- Reminder: drifted patches whose baseline was left stale ---
 if [ "${#drift_names[@]}" -gt 0 ]; then
   uniq_names="$(printf '%s\n' "${drift_names[@]}" | sort -u | tr '\n' ' ')"
