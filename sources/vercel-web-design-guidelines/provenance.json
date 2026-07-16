@@ -1,0 +1,37 @@
+{
+  "schema": 1,
+  "id": "vercel-web-design-guidelines",
+  "display_name": "Vercel Web Interface Guidelines review/audit wrapper (runtime-fetch)",
+  "source_type": "git-repo",
+  "absorbed_at": "2026-07-16",
+  "locator": {
+    "repo": "https://github.com/vercel-labs/agent-skills",
+    "tracked_paths": [
+      "skills/web-design-guidelines/**"
+    ],
+    "clone_state": "blobless-shallow"
+  },
+  "absorbed_version": {
+    "blob": "blob:ceae92ab319216a68274168fba9b63b998b65997",
+    "commit": "f8a72b9603728bb92a217a879b7e62e43ad76c81"
+  },
+  "dependents": [
+    {
+      "asset": "patches/vercel-web-design-guidelines/skill/vercel-web-design-guidelines/",
+      "depends_on": [
+        "wrapper SKILL.md (fetch + audit procedure)",
+        "runtime fetch URL https://raw.githubusercontent.com/vercel-labs/web-interface-guidelines/main/command.md"
+      ],
+      "break_if": [
+        "upstream changes the runtime fetch URL or the skill contract",
+        "skill frontmatter name changes away from vercel-web-design-guidelines"
+      ]
+    }
+  ],
+  "drift_probe": {
+    "kind": "git_blob",
+    "ref": "HEAD",
+    "path": "skills/web-design-guidelines/SKILL.md"
+  },
+  "notes": "Runtime-fetch skill: the ruleset is fetched live at review time from the web-interface-guidelines repo and is intentionally NOT pinned (freshness is a feature, not drift). drift_probe covers only the local wrapper blob. Frontmatter name was prefixed vercel- (upstream shipped a bare name)."
+}

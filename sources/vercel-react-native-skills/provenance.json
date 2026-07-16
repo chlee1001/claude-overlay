@@ -1,0 +1,37 @@
+{
+  "schema": 1,
+  "id": "vercel-react-native-skills",
+  "display_name": "Vercel React Native skills (38 rules)",
+  "source_type": "git-repo",
+  "absorbed_at": "2026-07-16",
+  "locator": {
+    "repo": "https://github.com/vercel-labs/agent-skills",
+    "tracked_paths": [
+      "skills/react-native-skills/**"
+    ],
+    "clone_state": "blobless-shallow"
+  },
+  "absorbed_version": {
+    "blob": "blob:d263eb9c111002248ec8b1539dbcd7ba7b6fddde",
+    "commit": "f8a72b9603728bb92a217a879b7e62e43ad76c81"
+  },
+  "dependents": [
+    {
+      "asset": "patches/vercel-react-native-skills/skill/vercel-react-native-skills/",
+      "depends_on": [
+        "compiled AGENTS.md",
+        "rules/ layout + SKILL.md index / AGENTS.md compile contract"
+      ],
+      "break_if": [
+        "upstream restructures rules/ or the AGENTS.md compile contract",
+        "skill frontmatter name changes away from vercel-react-native-skills"
+      ]
+    }
+  ],
+  "drift_probe": {
+    "kind": "git_blob",
+    "ref": "HEAD",
+    "path": "skills/react-native-skills/AGENTS.md"
+  },
+  "notes": "Multi-file skill absorbed verbatim. drift_probe = compiled AGENTS.md blob (de-facto tree hash)."
+}

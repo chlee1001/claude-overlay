@@ -1,0 +1,37 @@
+{
+  "schema": 1,
+  "id": "vercel-react-view-transitions",
+  "display_name": "Vercel React View Transition API recipes",
+  "source_type": "git-repo",
+  "absorbed_at": "2026-07-16",
+  "locator": {
+    "repo": "https://github.com/vercel-labs/agent-skills",
+    "tracked_paths": [
+      "skills/react-view-transitions/**"
+    ],
+    "clone_state": "blobless-shallow"
+  },
+  "absorbed_version": {
+    "blob": "blob:8e21361464e2dd2beb6cead5fd5e47dc5984892b",
+    "commit": "f8a72b9603728bb92a217a879b7e62e43ad76c81"
+  },
+  "dependents": [
+    {
+      "asset": "patches/vercel-react-view-transitions/skill/vercel-react-view-transitions/",
+      "depends_on": [
+        "compiled AGENTS.md (View Transition recipes)",
+        "references/ dir + SKILL.md"
+      ],
+      "break_if": [
+        "upstream restructures references/ or the compiled AGENTS.md",
+        "skill frontmatter name changes away from vercel-react-view-transitions"
+      ]
+    }
+  ],
+  "drift_probe": {
+    "kind": "git_blob",
+    "ref": "HEAD",
+    "path": "skills/react-view-transitions/AGENTS.md"
+  },
+  "notes": "Multi-file skill (AGENTS.md + references/) absorbed verbatim. drift_probe = compiled AGENTS.md blob."
+}

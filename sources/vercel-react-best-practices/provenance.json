@@ -1,0 +1,38 @@
+{
+  "schema": 1,
+  "id": "vercel-react-best-practices",
+  "display_name": "Vercel React/Next.js best practices (72 rules / 8 categories)",
+  "source_type": "git-repo",
+  "absorbed_at": "2026-07-16",
+  "locator": {
+    "repo": "https://github.com/vercel-labs/agent-skills",
+    "tracked_paths": [
+      "skills/react-best-practices/**"
+    ],
+    "clone_state": "blobless-shallow"
+  },
+  "absorbed_version": {
+    "blob": "blob:4e340a50684a8e7811d5bfa4df48bd9989d0fd87",
+    "commit": "f8a72b9603728bb92a217a879b7e62e43ad76c81"
+  },
+  "dependents": [
+    {
+      "asset": "patches/vercel-react-best-practices/skill/vercel-react-best-practices/",
+      "depends_on": [
+        "compiled AGENTS.md = concatenation of rules/*.md is the deployed skill content",
+        "rules/ directory layout + SKILL.md index contract"
+      ],
+      "break_if": [
+        "upstream restructures rules/ or stops committing the compiled AGENTS.md",
+        "skill frontmatter name changes away from vercel-react-best-practices",
+        "MAJOR change to the rule/section format"
+      ]
+    }
+  ],
+  "drift_probe": {
+    "kind": "git_blob",
+    "ref": "HEAD",
+    "path": "skills/react-best-practices/AGENTS.md"
+  },
+  "notes": "Multi-file skill absorbed verbatim (cp -R). drift_probe tracks the compiled AGENTS.md blob as a de-facto tree hash: upstream's build package keeps AGENTS.md in sync with rules/, so any rule change moves this blob. Engine has no tree-hash kind; single-path blob is the faithful substitute."
+}
