@@ -21,7 +21,9 @@
 set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PATCHES_DIR="$SCRIPT_DIR/patches"
+PATCHES_DIR="${OMC_PATCHES_DIR:-$SCRIPT_DIR/patches}"
+# shared installed-plugins resolver + version-core normalizer (honors OMC_INSTALLED_PLUGINS)
+. "$SCRIPT_DIR/lib/omc-version.sh"
 WRITE=0
 UPDATE_BASELINE=0
 
@@ -35,19 +37,9 @@ for arg in "$@"; do
 done
 
 # --- Resolve OMC roots: active cache install + marketplace source ---
-INSTALLED="$HOME/.claude/plugins/installed_plugins.json"
-ACTIVE_CACHE=""
-if [ -f "$INSTALLED" ]; then
-  ACTIVE_CACHE="$(python3 -c "
-import json
-d=json.load(open('$INSTALLED'))
-plugins=d.get('plugins', d)
-e=plugins.get('oh-my-claudecode@omc',[])
-paths=[x.get('installPath','') for x in e if x.get('installPath')]
-print(paths[0] if paths else '')
-" 2>/dev/null)"
-fi
-MARKETPLACE="$HOME/.claude/plugins/marketplaces/omc"
+# Active install path via the shared resolver (honors OMC_INSTALLED_PLUGINS for tests).
+ACTIVE_CACHE="$(omc_active_installpath)"
+MARKETPLACE="${OMC_MARKETPLACE:-$HOME/.claude/plugins/marketplaces/omc}"
 
 # Version label (active cache folder name), stamped into baseline-version on advance.
 # Captured from the resolved install path BEFORE the override clobbers ACTIVE_CACHE so it
@@ -72,6 +64,8 @@ fi
 
 echo "mode: $([ $WRITE -eq 1 ] && echo WRITE || echo DRY-RUN)$([ $UPDATE_BASELINE -eq 1 ] && echo ' +update-baseline')"
 echo "active cache: ${ACTIVE_CACHE:-<none>}"
+# skew breadcrumb (DIAGNOSTIC ONLY — apply's on-disk dry-run is authoritative). See helper.
+omc_print_versions "$MARKETPLACE"
 echo "roots: ${#ROOTS[@]}"
 echo
 
@@ -144,9 +138,14 @@ for pdir in "$PATCHES_DIR"/*/; do
       fi
     elif [ "$status" -ge 1 ] && [ "$status" -le 127 ]; then
       cfile="$target.merge-conflict"
-      cp "$merged" "$cfile"
       echo "CONFLICT $label — $status region(s); upstream touched patched lines"
-      echo "      ↳ wrote $cfile (resolve, then copy onto target)"
+      if [ $WRITE -eq 1 ]; then
+        cp "$merged" "$cfile"
+        echo "      ↳ wrote $cfile (resolve, then copy onto target)"
+      else
+        # dry-run must write NOTHING (docstring contract). Only --write materializes it.
+        echo "      ↳ would write $cfile on --write (dry-run: nothing written)"
+      fi
       had_conflict=1
     else
       echo "ERROR $label — git merge-file failed (status $status)"
@@ -285,8 +284,12 @@ if [ "${#missing_names[@]}" -gt 0 ]; then
   echo "         NOT being applied. Check the new version's tree, then retarget or retire the patch."
 fi
 
-# --- Exit code by severity: error(3) > conflict(2) > missing(4) > ok(0) ---
+# --- Exit code by severity: error(3) > conflict(2) > missing(4) > drift(5) > ok(0) ---
+# Sequential assignment, last match wins; drift is FIRST so any harder state overrides it.
+# drift(5) makes apply's rc honest for callers (doctor, a SessionStart hook) — a clean-but-
+# drifted run used to exit 0 despite the REMINDER, hiding the need to --update-baseline.
 rc=0
+[ "${#drift_names[@]}" -gt 0 ] && rc=5
 [ "${#missing_names[@]}" -gt 0 ] && rc=4
 [ $had_conflict -eq 1 ] && rc=2
 [ $had_error -eq 1 ] && rc=3

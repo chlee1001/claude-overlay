@@ -20,6 +20,9 @@ SOURCES_DIR = os.environ["OMC_SOURCES_DIR"]
 INSTALLED = os.path.expanduser(os.environ["OMC_INSTALLED_PLUGINS"])
 MARKETPLACES = os.path.expanduser(os.environ["OMC_MARKETPLACES_DIR"])
 DRYRUN = os.environ.get("REABSORB_DRYRUN", "0") == "1"
+# --local-only (doctor --quiet / hook path): skip git-repo NETWORK probes so detect stays
+# fast and offline-safe. Those sources report SKIPPED (not ERROR, not a network call).
+LOCAL_ONLY = os.environ.get("REABSORB_LOCAL_ONLY", "0") == "1"
 
 # ---- helpers ---------------------------------------------------------------
 
@@ -261,6 +264,10 @@ def probe(prov):
 
     if st == "git-repo":
         repo = loc.get("repo", "")
+        # --local-only: defer the network probe entirely (doctor --quiet / hook path).
+        if LOCAL_ONLY:
+            return {"status": "SKIPPED", "recorded": str(av.get("commit", av.get("blob", "-"))),
+                    "current": "-", "axis": "git-repo network probe skipped (--local-only)"}
         if (not repo) or ("<" in repo):
             return {"status": "UNKNOWN", "recorded": str(av.get("commit", av.get("blob", "-"))),
                     "current": "-", "axis": "git-repo URL unpinned (fill locator.repo)"}
@@ -305,8 +312,12 @@ def probe(prov):
 # severity — e.g. ERROR=3 < DRIFTED=5 numerically though ERROR outranks DRIFTED). Callers must
 # switch on the specific code, not assume "higher = worse". STATUS_RANK is the true severity
 # order used to pick which status' code wins when several coexist.
-STATUS_CODE = {"CURRENT": 0, "BREAKING": 2, "ERROR": 3, "UNKNOWN": 4, "DRIFTED": 5}
-STATUS_RANK = {"CURRENT": 0, "UNKNOWN": 1, "DRIFTED": 2, "BREAKING": 3, "ERROR": 4}
+# SKIPPED (git-repo probe deferred under --local-only) shares UNKNOWN's exit code (4,
+# "informational — freshness unknown") and is tiered at UNKNOWN's severity so a real
+# installed-plugin DRIFTED still wins the rollup. A clean --local-only run therefore
+# exits 4 (its git-repo sources are structurally SKIPPED), by design.
+STATUS_CODE = {"CURRENT": 0, "BREAKING": 2, "ERROR": 3, "UNKNOWN": 4, "DRIFTED": 5, "SKIPPED": 4}
+STATUS_RANK = {"CURRENT": 0, "UNKNOWN": 1, "SKIPPED": 1, "DRIFTED": 2, "BREAKING": 3, "ERROR": 4}
 
 
 def mode_detect():

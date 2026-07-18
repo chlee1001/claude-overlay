@@ -19,6 +19,23 @@ clobbered.
 - A previously-patched OMC file (e.g. `git-master.md`) appears reverted.
 - To verify our local OMC patches are present on the active version.
 
+## Health check (one verdict across both flows)
+
+`./doctor.sh` is the single read-only health entry point. It runs `apply.sh` (dry-run) +
+`reabsorb.sh` (detect) + a version-skew breadcrumb, and prints ONE combined verdict + exit
+code (`3` error · `2` hard action · `5` soft drift · `4` informational · `0` healthy). It
+never writes anything (there is no `--write` path — that is the point). `./doctor.sh --quiet`
+prints a single line and passes `--local-only` to reabsorb (skips git-repo network probes),
+for a fast offline-safe SessionStart nudge (phase 2). Use `doctor.sh` first after an update to
+see whether anything needs attention; then follow the guided workflow below for what it flags.
+
+## Fossilize regressions
+
+When you resolve a real drift / CONFLICT / BREAKING / tooling bug, add BOTH: (a) a permanent
+fixture in `tests/run.sh` that fails if it returns, and (b) a dated one-liner in
+`REGRESSIONS.md`. A ledger line without a fixture rots silently; a fixture without a line
+loses its story. The insane-design 3.1→3.2 case is the model fossil.
+
 ## Guided update workflow (step by step)
 
 When this skill triggers after an OMC update, walk the user through these steps. The scripts

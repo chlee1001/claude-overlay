@@ -273,6 +273,82 @@ out="$(runsp 2>&1)"; assert_contains "after --bump -> CURRENT (records new blob)
 mkprov "<run --bump to record>"
 out="$(runsp 2>&1)"; assert_contains "unpinned blob placeholder -> UNKNOWN" "UNKNOWN" "$out"
 
+APPLY="$ROOT/apply.sh"
+DOCTOR="$ROOT/doctor.sh"
+# synthetic patch triplet: mk_patch <patches_dir> <name> <target_rel> <baseline> <patched> <marker>
+mk_patch() { local pd="$1/$2"; mkdir -p "$pd"
+  printf '%s' "$3" > "$pd/target"; printf '%s' "$6" > "$pd/marker"
+  printf '%b' "$4" > "$pd/baseline.md"; printf '%b' "$5" > "$pd/patched.md"
+  printf 'v0.0.0' > "$pd/baseline-version"; }
+mk_target() { mkdir -p "$(dirname "$1/$2")"; printf '%b' "$3" > "$1/$2"; }
+NONEJSON="$TMP/none.json"   # nonexistent installed_plugins -> helper returns "" (hermetic, no real ~/.claude read)
+
+echo "25) apply.sh dry-run CONFLICT writes nothing (+ fossil-rot meta-guard) [BLOCKER fossil]"
+AP="$TMP/ap_conf"; PR="$TMP/apr_conf"; rm -rf "$AP" "$PR"; mkdir -p "$AP" "$PR"
+mk_patch "$AP" p1 "agents/x.md" 'a\nSHARED\nc\n' 'a\nMYEDIT\nc\n' 'MYEDIT'
+mk_target "$PR" "agents/x.md" 'a\nUPSTREAM\nc\n'
+out="$(OMC_PATCHES_DIR="$AP" OMC_PATCH_ROOTS="$PR" OMC_INSTALLED_PLUGINS="$NONEJSON" bash "$APPLY" 2>&1)"; rc=$?
+assert_contains "apply dry-run detects CONFLICT" "CONFLICT" "$out"
+[ -f "$PR/agents/x.md.merge-conflict" ] && bad "dry-run wrote .merge-conflict (BLOCKER regressed)" || ok "apply.sh dry-run CONFLICT writes nothing"
+assert_eq "apply CONFLICT dry-run rc 2" "2" "$rc"
+git merge-file -p "$PR/agents/x.md" "$AP/p1/baseline.md" "$AP/p1/patched.md" >/dev/null 2>&1; mrc=$?
+[ "$mrc" -ge 1 ] && ok "fossil-rot meta-guard: fixture still triggers a real CONFLICT" || bad "fixture no longer conflicts (fossil rot)"
+OMC_PATCHES_DIR="$AP" OMC_PATCH_ROOTS="$PR" OMC_INSTALLED_PLUGINS="$NONEJSON" bash "$APPLY" --write >/dev/null 2>&1
+[ -f "$PR/agents/x.md.merge-conflict" ] && ok "apply.sh --write DOES write .merge-conflict" || bad "--write failed to write .merge-conflict"
+
+echo "26) apply.sh clean-but-drifted -> exit 5 [rec-1 fossil]"
+AP2="$TMP/ap_drift"; PR2="$TMP/apr_drift"; rm -rf "$AP2" "$PR2"; mkdir -p "$AP2" "$PR2"
+mk_patch "$AP2" p1 "agents/y.md" 'a\nSHARED\nc\n' 'a\nSHARED\nMYEDIT\n' 'MYEDIT'
+mk_target "$PR2" "agents/y.md" 'UPSTREAM\nSHARED\nc\n'   # upstream edits line1, patch edits line3 -> clean + drift
+out="$(OMC_PATCHES_DIR="$AP2" OMC_PATCH_ROOTS="$PR2" OMC_INSTALLED_PLUGINS="$NONEJSON" bash "$APPLY" 2>&1)"; rc=$?
+assert_contains "drift noted as CLEAN(drift)" "CLEAN" "$out"
+assert_eq "apply drift exits 5 (not 0)" "5" "$rc"
+
+echo "27) apply.sh skew breadcrumb: active basename vs marketplace clone tag"
+CACHE="$TMP/cache/omc/oh-my-claudecode/4.15.2"; mkdir -p "$CACHE"
+printf '{"plugins":{"oh-my-claudecode@omc":[{"installPath":"%s"}]}}\n' "$CACHE" > "$TMP/inst_skew.json"
+mkskewmp() { local d="$1" tag="$2"; mkdir -p "$d"; ( cd "$d" && git init -q && git config user.email t@t && git config user.name t && echo x>f && git add f && git commit -qm init && git tag "$tag" ) 2>/dev/null; }
+mkskewmp "$TMP/mp_old" "v4.14.7"; mkskewmp "$TMP/mp_same" "v4.15.2"
+mkdir -p "$TMP/nopatch"
+out="$(OMC_PATCHES_DIR="$TMP/nopatch" OMC_INSTALLED_PLUGINS="$TMP/inst_skew.json" OMC_MARKETPLACE="$TMP/mp_old" bash "$APPLY" 2>&1)"
+assert_contains "skew flagged (4.15.2 vs v4.14.7)" "⚠ SKEW" "$out"
+out="$(OMC_PATCHES_DIR="$TMP/nopatch" OMC_INSTALLED_PLUGINS="$TMP/inst_skew.json" OMC_MARKETPLACE="$TMP/mp_same" bash "$APPLY" 2>&1)"
+case "$out" in *"⚠ SKEW"*) bad "false skew on equal release (v4.15.2)";; *) ok "no skew on equal release (v4.15.2)";; esac
+
+echo "28) doctor.sh matrix — combined exit per severity"
+EMPTYSRC="$TMP/emptysrc"; mkdir -p "$EMPTYSRC"; NOPMP="$TMP/nomp"
+dr() { OMC_INSTALLED_PLUGINS="$NONEJSON" OMC_MARKETPLACE="$NOPMP" OMC_MARKETPLACES_DIR="$NOPMP" bash "$DOCTOR" "$@"; }
+# 28a: healthy — no patches, no sources -> 0
+mkdir -p "$TMP/np" "$TMP/nr"
+OMC_PATCHES_DIR="$TMP/np" OMC_PATCH_ROOTS="$TMP/nr" OMC_SOURCES_DIR="$EMPTYSRC" dr --quiet >/dev/null 2>&1; assert_eq "doctor healthy -> 0" "0" "$?"
+# 28b: apply MISSING (patch target absent on root) -> doctor hard -> 2
+APM="$TMP/ap_miss"; mkdir -p "$APM" "$TMP/nr2"; mk_patch "$APM" p1 "agents/gone.md" 'b\n' 'p\n' 'MARKER'
+OMC_PATCHES_DIR="$APM" OMC_PATCH_ROOTS="$TMP/nr2" OMC_SOURCES_DIR="$EMPTYSRC" dr --quiet >/dev/null 2>&1; assert_eq "doctor apply-MISSING -> 2" "2" "$?"
+# 28c: apply drift -> doctor soft -> 5
+OMC_PATCHES_DIR="$AP2" OMC_PATCH_ROOTS="$PR2" OMC_SOURCES_DIR="$EMPTYSRC" dr --quiet >/dev/null 2>&1; assert_eq "doctor apply-drift -> 5" "5" "$?"
+# 28d: source UNKNOWN (plugin not installed) -> doctor info -> 4  (NOT collapsed with MISSING)
+USRC="$TMP/usrc"; mkdir -p "$USRC/demo"
+printf '{"schema":1,"id":"demo","source_type":"installed-plugin","locator":{"plugin_key":"demo@x","plugin_path":"p"},"absorbed_version":{"plugin_version":"1.0.0"},"dependents":[{"asset":"a","depends_on":["x"],"break_if":["y"]}],"drift_probe":{}}' > "$USRC/demo/provenance.json"
+printf '{"plugins":{}}\n' > "$TMP/inst_empty.json"
+OMC_PATCHES_DIR="$TMP/np" OMC_PATCH_ROOTS="$TMP/nr" OMC_SOURCES_DIR="$USRC" OMC_INSTALLED_PLUGINS="$TMP/inst_empty.json" OMC_MARKETPLACE="$NOPMP" OMC_MARKETPLACES_DIR="$NOPMP" bash "$DOCTOR" --quiet >/dev/null 2>&1
+assert_eq "doctor source-UNKNOWN -> 4 (not 2)" "4" "$?"
+
+echo "29) doctor.sh --local-only SKIPPED + offline never-3"
+GSRC="$TMP/gsrc_off"; mkdir -p "$GSRC/g"
+printf '{"schema":1,"id":"g","source_type":"git-repo","locator":{"repo":"https://example.invalid/x"},"absorbed_version":{"commit":"deadbeef"},"dependents":[{"asset":"a","depends_on":["x"],"break_if":["y"]}],"drift_probe":{"ref":"HEAD"}}' > "$GSRC/g/provenance.json"
+OMC_PATCHES_DIR="$TMP/np" OMC_PATCH_ROOTS="$TMP/nr" OMC_SOURCES_DIR="$GSRC" OMC_INSTALLED_PLUGINS="$NONEJSON" OMC_MARKETPLACE="$NOPMP" OMC_MARKETPLACES_DIR="$NOPMP" bash "$DOCTOR" --quiet >/dev/null 2>&1; rc=$?
+assert_eq "doctor --local-only unreachable git-repo -> 4 (SKIPPED)" "4" "$rc"
+[ "$rc" != "3" ] && ok "offline --quiet never exits 3" || bad "offline exited 3"
+
+echo "30) doctor.sh is read-only: leaves sandbox (and thus real dirs) untouched"
+SB="$TMP/sandbox"; rm -rf "$SB"; mkdir -p "$SB/patches" "$SB/root" "$SB/sources/demo"
+printf '{"schema":1,"id":"demo","source_type":"installed-plugin","locator":{"plugin_key":"demo@x","plugin_path":"p"},"absorbed_version":{"plugin_version":"1.0.0"},"dependents":[{"asset":"a","depends_on":["x"],"break_if":["y"]}],"drift_probe":{}}' > "$SB/sources/demo/provenance.json"
+snap() { find "$1" -type f -exec cksum {} \; | sort; }
+before="$(snap "$SB")"
+OMC_PATCHES_DIR="$SB/patches" OMC_PATCH_ROOTS="$SB/root" OMC_SOURCES_DIR="$SB/sources" OMC_INSTALLED_PLUGINS="$NONEJSON" OMC_MARKETPLACE="$NOPMP" OMC_MARKETPLACES_DIR="$NOPMP" bash "$DOCTOR" --quiet >/dev/null 2>&1
+after="$(snap "$SB")"
+assert_eq "doctor wrote nothing to sandbox" "$before" "$after"
+
 echo
 echo "== $PASS passed, $FAIL failed =="
 [ "$FAIL" -eq 0 ]

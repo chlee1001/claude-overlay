@@ -12,6 +12,9 @@
 #   reabsorb.sh --triage <id>        preview — assemble the architect triage packet, no writes/calls
 #   reabsorb.sh --bump [--dry-run] <id>      advance recorded absorbed_version to current
 #   reabsorb.sh --validate-verdict <file>    validate an architect triage verdict JSON
+#   reabsorb.sh --local-only                 detect, but SKIP git-repo network probes
+#                                            (git-repo sources report SKIPPED). Fast/offline —
+#                                            used by doctor.sh --quiet for a per-session nudge.
 #
 # Testability (env overrides — never touch real ~/.claude in tests):
 #   OMC_SOURCES_DIR        default: <script>/sources
@@ -38,11 +41,13 @@ usage() { sed -n '2,26p' "${BASH_SOURCE[0]}"; }
 MODE="detect"
 ARG=""
 DRYRUN=0
+LOCAL_ONLY=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --triage) MODE="triage"; ARG="${2:-}"; shift 2 || shift ;;
     --bump) MODE="bump"; shift ;;
     --dry-run) DRYRUN=1; shift ;;
+    --local-only) LOCAL_ONLY=1; shift ;;
     --validate-verdict) MODE="validate"; ARG="${2:-}"; shift 2 || shift ;;
     -h|--help) usage; exit 0 ;;
     -*) echo "unknown flag: $1" >&2; exit 64 ;;
@@ -51,5 +56,6 @@ while [ $# -gt 0 ]; do
 done
 
 export REABSORB_DRYRUN="$DRYRUN"
+export REABSORB_LOCAL_ONLY="$LOCAL_ONLY"
 python3 "$PYCORE" "$MODE" "$ARG"
 exit $?
