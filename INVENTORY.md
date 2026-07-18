@@ -7,7 +7,6 @@
 
 | skill | upstream | pinned | drift-probe | routed by |
 |---|---|---|---|---|
-| `design-discovery` | insane-design@gptaku-plugins | `0.5.3` | manifest_version + artifact_schema (declared x sample cross-validate) | — (description-trigger only) |
 | `plan-readable` | local (our own) | `—` | — | planner-readable |
 | `reabsorb` | local (our own) | `—` | — | — (description-trigger only) |
 | `strict-tdd` | local (our own) | `—` | — | — (description-trigger only) |
@@ -37,7 +36,6 @@
 |---|---|---|---|
 | `dev` | installed-plugin | dev@team-attention-plugins | `1.1.0` |
 | `humanize-korean` | installed-plugin | humanize-korean@im-not-ai | `1.5.0` |
-| `insane-design` | installed-plugin | insane-design@gptaku-plugins | `0.5.3` |
 | `insane-search` | installed-plugin | insane-search@gptaku-plugins | `0.9.2` |
 | `ponytail` | git-repo | DietrichGebert/ponytail | `1b2760d384c4` |
 | `superpowers-completion-discipline` | git-repo | obra/superpowers | `2f14076e59e6` |
@@ -53,4 +51,4 @@
 | rule | `writing-tropes.md` | `korean-writing` | `~/.claude/rules` |
 
 ---
-_9 absorbed skill(s), 9 file patch(es), 5 owned rule/hook(s), 11 provenance source(s)._
+_8 absorbed skill(s), 9 file patch(es), 5 owned rule/hook(s), 10 provenance source(s)._

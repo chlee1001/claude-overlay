@@ -30,7 +30,7 @@ mk_source() {
 {"schema":1,"id":"demo","source_type":"installed-plugin",
  "locator":{"plugin_key":"demo@fix","plugin_path":"fixmp/plugins/demo"},
  "absorbed_version":{"plugin_version":"$3","contract":{"frontmatter_schema_version":"$2"}},
- "dependents":[{"asset":"patches/design-discovery/skill/design-discovery/SKILL.md",
+ "dependents":[{"asset":"patches/sample-dep/skill/sample-dep/SKILL.md",
    "depends_on":["리포트 schema_version 계약"],"break_if":["schema MAJOR bump"]}],
  "drift_probe":{"kind":"manifest_version + artifact_schema","schema_probe":{"file_glob":"docs/reports/*/design.md","field":"schema_version"}}}
 EOF
@@ -103,7 +103,7 @@ rm -rf "$TMP/sources"; mk_source "$TMP/sources/demo" "3.1" "1.0.0"; mk_mp "3.2";
 before="$(cat "$TMP/sources/demo/provenance.json")"
 out="$(run --triage demo 2>&1)"
 assert_contains "packet has depends_on" "depends_on" "$out"
-assert_contains "packet has dependent asset" "design-discovery" "$out"
+assert_contains "packet has dependent asset" "sample-dep" "$out"
 assert_contains "packet requires verdict.schema" "verdict.schema.json" "$out"
 assert_eq "triage writes nothing" "$before" "$(cat "$TMP/sources/demo/provenance.json")"
 

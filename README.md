@@ -169,9 +169,6 @@ claude-overlay/
         omc-completion-gate.mjs  # verification gate + comment-hygiene advisory
       tests/comment-hygiene.test.mjs  # hermetic hook regression test
       deploy.sh                  # registers the Stop hook in settings.json (idempotent)
-    design-discovery/            # assets only (no file patch)
-      skill/design-discovery/    # owned skill, copied to ~/.claude/skills/
-      deploy.sh                  # registers the PostToolUse plan-save suggestion hook (idempotent)
     code-minimalism/             # assets only (no file patch)
       rules/                     # owned rule doc, copied to ~/.claude/rules/
         code-minimalism.md
@@ -204,8 +201,7 @@ hand-written list would. Three commands cover the whole lifecycle:
 ## Re-absorption (`reabsorb.sh`) — the sibling flow for absorbed external sources
 
 `apply.sh` keeps our patches of **OMC's own files** alive across OMC updates. But we also
-absorbed things from **other** projects: `design-discovery` consumes `insane-design`'s report
-format at runtime; `completion-gate` adapts a discipline from **Superpowers**; `korean-writing`
+absorbed things from **other** projects: `completion-gate` adapts a discipline from **Superpowers**; `korean-writing`
 derives from **humanize-korean**'s taxonomy. When *those* upstreams move, a 3-way merge can't help —
 our asset is a *derivative* of an interface or idea, not a line-fork of the source. `reabsorb.sh`
 fills that gap, and runs on the external sources' own cadence (independent of OMC updates).
@@ -309,26 +305,9 @@ user; Korean stage-leak like `3단계` is left to the manual Pass 5 grep since i
 terms like `2단계 인증`; and no noisy abbreviations), and is disabled by `OMC_SKIP_COMMENT_HYGIENE=1`.
 Covered by `tests/comment-hygiene.test.mjs` (hermetic, transcript-driven).
 
-### design-discovery
+### design-discovery → moved out
 
-Assets only — no plugin file is patched. Fills the missing **PLAN→BUILD** phase: OMC plans
-(`ralplan`/`planner`) stop at architecture and defer UI direction to open-questions, while the
-`designer` agent improvises aesthetics at build time. This patch deploys a `design-discovery` skill
-that, given a finalized `.omc/plans/*.md`, produces research-grounded design artifacts (a brief,
-cited X/Reddit/HN UX research, an `insane-design`-token `design.md`, and an HTML mockup) **without
-touching app code** — a `design.md` "contract" the `designer` agent / `insane-apply` then consume.
-It separates **intent** (structure, interaction, status-encoding, feel — always portable) from
-**values** (hex/fonts/spacing/components) and gates on a design-system check: in *greenfield*
-projects it bakes reference values into `design.md`; in *brownfield* projects (existing tokens,
-tailwind theme, component library, design-system dep) it takes only the intent and reconciles it
-onto the project's **own** tokens/components (`integration.md` mapping + gap list with a fixed
-priority — existing system wins on values, design-discovery wins on structure/interaction), then
-emits a `plan-delta.md` of concrete tasks so the design actually weaves into the implementation
-plan instead of floating beside it.
-The bundled `deploy.sh` registers a `PostToolUse` (Write|Edit) hook in `~/.claude/settings.json`
-idempotently: when a finalized plan is written (not `*.readable.md` / `open-questions.md`), it
-injects a one-line nudge to consider `/design-discovery <plan-path>`, and stays silent for every
-other write. Gated to UI-bearing plans; backend/CLI-only plans are skipped.
+Formerly an owned patch here. **Absorbed into the standalone `design-orchestrator` skill** (skillbox workspace) and removed from the overlay, to keep OMC light and deliver design skills on-demand via skillbox. The orchestrator keeps the same intent/values separation and brownfield reconciliation, adds a taste-skill arrangement stage, and tracks its own upstreams (independent of this overlay's reabsorb). See `claude-skills/design-orchestrator/`.
 
 ### ai-slop-cleaner
 

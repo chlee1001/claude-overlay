@@ -134,9 +134,6 @@ claude-overlay/
       rules/                     # 소유 규칙 문서, ~/.claude/rules/ 로 복사됨
         korean-writing.md
         writing-tropes.md
-    design-discovery/            # 자산만 (파일 패치 없음)
-      skill/design-discovery/    # 소유 스킬, ~/.claude/skills/ 로 복사됨
-      deploy.sh                  # 플랜 저장 제안 PostToolUse 훅을 settings.json에 멱등 등록
     ai-slop-cleaner/             # 대상: skill-bodies/ai-slop-cleaner/SKILL.md
       target / marker / baseline.md / patched.md
     completion-gate/             # 자산만 (파일 패치 없음)
@@ -177,7 +174,7 @@ claude-overlay/
 ## 재흡수 (`reabsorb.sh`) — 흡수한 외부 원본을 위한 사이드 플로우
 
 `apply.sh`는 **OMC 자체 파일**에 건 우리 패치를 OMC 업데이트에도 살려둔다. 그런데 우리는 **다른** 프로젝트에서도
-흡수했다: `design-discovery`는 런타임에 `insane-design`의 리포트 형식을 소비하고, `completion-gate`는
+흡수했다: `completion-gate`는
 **Superpowers**의 규율을 적응했고, `korean-writing`은 **humanize-korean**의 분류체계에서 파생됐다. *그* 원본들이
 움직이면 3방향 머지가 못 돕는다 — 우리 자산은 원본의 줄-포크가 아니라 인터페이스나 개념의 *파생물*이라서.
 `reabsorb.sh`가 그 공백을 메우며, 외부 원본의 자체 주기(OMC 업데이트와 독립)로 돈다.
@@ -246,22 +243,9 @@ claude-overlay/
 `korean-writing.md`(한글 문서는 그 트로프를 따르고, 그다음 윤문·의미보존을 위해 humanize 패스를
 거친다는 컨벤션). 여기 두면 나머지 자산과 같은 `apply.sh` 실행으로 함께 복구된다.
 
-### design-discovery
+### design-discovery → 이전됨
 
-자산만 담는다 — 플러그인 파일은 건드리지 않는다. 비어 있던 **PLAN→BUILD** 단계를 채운다. OMC
-플랜(`ralplan`/`planner`)은 아키텍처까지만 정하고 UI 방향은 open-questions로 미루며, `designer`
-에이전트는 빌드 시점에 미감을 즉흥으로 짠다. 이 패치는 `design-discovery` 스킬을 배포한다 — 확정된
-`.omc/plans/*.md`를 받아 **앱 코드를 건드리지 않고** 근거 기반 디자인 아티팩트(brief, 인용 붙은
-X/Reddit/HN UX 리서치, `insane-design` 토큰 기반 `design.md`, HTML 목업)를 만든다. 이 `design.md`는
-이후 `designer`/`insane-apply`가 소비하는 "계약"이다. **의도**(구조·인터랙션·상태 인코딩·느낌 — 항상
-이식 가능)와 **값**(hex/폰트/spacing/컴포넌트)을 분리하고 디자인 가이드 유무로 분기한다: *greenfield*
-는 레퍼런스 값을 `design.md`에 박고, *brownfield*(기존 토큰·tailwind theme·컴포넌트 라이브러리)는 의도만
-가져와 프로젝트 **자체** 토큰/컴포넌트에 매핑한다(`integration.md` 매핑+gap, 고정 우선순위 — 값은 기존
-시스템이, 구조/인터랙션은 design-discovery가 이김). 그 뒤 `plan-delta.md`에 구체 태스크를 뽑아 디자인이
-구현계획에 **떠다니지 않고 녹아들게** 한다. 동봉한 `deploy.sh`는 `PostToolUse`(Write|Edit)
-훅을 `~/.claude/settings.json`에 멱등 등록한다: 확정 플랜이 저장되면(`*.readable.md`/`open-questions.md`
-제외) `/design-discovery <plan-path>`를 고려하라는 한 줄을 주입하고, 그 외 모든 쓰기엔 침묵한다. UI
-표면이 있는 플랜에만 작동하고 백엔드/CLI 전용은 건너뛴다.
+예전엔 여기 소유 패치였다. **독립 `design-orchestrator` 스킬(skillbox 워크스페이스)로 흡수**하고 overlay에서 제거했다 — OMC를 가볍게 두고 디자인 스킬을 skillbox로 on-demand 배급하기 위해. 오케스트레이터는 같은 의도/값 분리·brownfield reconciliation을 유지하고 taste-skill 배치 단계를 더하며, 자체 업스트림을 추적한다(이 overlay reabsorb와 독립). `claude-skills/design-orchestrator/` 참조.
 
 ### completion-gate
 

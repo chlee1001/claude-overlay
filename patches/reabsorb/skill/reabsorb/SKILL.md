@@ -1,12 +1,11 @@
 ---
 name: reabsorb
 description: >
-  claude-overlay 재흡수 플로우 — 우리가 외부에서 흡수한 것(design-discovery←insane-design 등,
-  completion-gate←Superpowers, korean-writing←humanize-korean)의 원본이 업데이트됐는지 감지하고,
+  claude-overlay 재흡수 플로우 — 우리가 외부에서 흡수한 것(completion-gate←Superpowers, korean-writing←humanize-korean)의 원본이 업데이트됐는지 감지하고,
   OMC architect deep-analysis로 triage해서 우리 번들 자산에 다시 흡수한다. OMC 업데이트(apply.sh)와
   독립된 사이드 플로우. claude-overlay 폴더에서 실행.
   Triggers: "재흡수", "reabsorb", "흡수물 드리프트", "원본 업데이트 반영", "reabsorb 돌려줘",
-  "insane-design 업데이트 반영".
+  "humanize-korean 업데이트 반영".
 triggers:
   - /reabsorb
   - 재흡수
@@ -22,8 +21,8 @@ triggers:
 > **claude-overlay 폴더에서 실행한다.**
 
 ## 언제
-- 흡수한 외부 원본(insane-design/insane-search/humanize-korean/dev/Superpowers)이 업데이트됐을 수 있을 때.
-- "재흡수 돌려줘", 주기 점검, 또는 insane-design 등 특정 원본 업데이트를 반영하고 싶을 때.
+- 흡수한 외부 원본(insane-search/humanize-korean/dev/Superpowers)이 업데이트됐을 수 있을 때.
+- "재흡수 돌려줘", 주기 점검, 또는 insane-search 등 특정 원본 업데이트를 반영하고 싶을 때.
 
 ## 절대 규칙
 - **기본은 dry-run.** 감지·triage·preview는 아무것도 안 쓴다. 쓰기는 사람 승인 후 명시 단계에서만.
@@ -58,7 +57,7 @@ Task(subagent_type="oh-my-claudecode:architect",
 architect에 주는 입력:
 1. 해당 `sources/<id>/provenance.json` 전문 (depends_on/break_if = 평가 루브릭).
 2. 각 dependent 자산(`patches/…`)의 현재 전문.
-3. 업스트림 델타: installed-plugin이면 새 계약 표면(예: insane-design 새 `design.md` frontmatter 샘플 + `schema_version`), git-repo면 `git diff <recorded>..HEAD -- <paths>`.
+3. 업스트림 델타: installed-plugin이면 새 계약 표면(예: 스킬 frontmatter/아티팩트 스키마 샘플 + 버전 필드), git-repo면 `git diff <recorded>..HEAD -- <paths>`.
 4. 요구 verdict: `verdict.schema.json` 준수. **irrelevant | compatible | breaking**.
    - irrelevant = depends_on 무변 → bump만.
    - compatible = 변했으나 흡수 가능 → **반드시 구체 `proposed_delta`(from/to)**.
