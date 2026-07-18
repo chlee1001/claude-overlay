@@ -38,7 +38,7 @@
 | `dev` | installed-plugin | dev@team-attention-plugins | `1.1.0` |
 | `humanize-korean` | installed-plugin | humanize-korean@im-not-ai | `1.5.0` |
 | `insane-design` | installed-plugin | insane-design@gptaku-plugins | `0.5.3` |
-| `insane-search` | installed-plugin | insane-search@gptaku-plugins | `0.9.1` |
+| `insane-search` | installed-plugin | insane-search@gptaku-plugins | `0.9.2` |
 | `ponytail` | git-repo | DietrichGebert/ponytail | `1b2760d384c4` |
 | `superpowers-completion-discipline` | git-repo | obra/superpowers | `2f14076e59e6` |
 

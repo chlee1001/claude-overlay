@@ -3,14 +3,14 @@
   "id": "insane-search",
   "display_name": "insane-search (gptaku-plugins)",
   "source_type": "installed-plugin",
-  "absorbed_at": "2026-07-02",
+  "absorbed_at": "2026-07-19",
   "locator": {
     "plugin_key": "insane-search@gptaku-plugins",
     "plugin_path": "gptaku-plugins/plugins/insane-search",
     "manifest_path": "gptaku-plugins/plugins/insane-search/.claude-plugin/plugin.json"
   },
   "absorbed_version": {
-    "plugin_version": "0.9.1",
+    "plugin_version": "0.9.2",
     "contract": {
       "platforms_hash": "sha256:70d8bf94fa76d87fd886b7601e67a8657738f01debd54e9d6892c28ab8c3e967",
       "coupling": "loose (P2 blocked-fetch fallback: X/Reddit unblock)"

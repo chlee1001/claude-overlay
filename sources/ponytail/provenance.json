@@ -3,7 +3,7 @@
   "id": "ponytail",
   "display_name": "ponytail — lazy senior dev / code-minimalism discipline (DietrichGebert/ponytail)",
   "source_type": "git-repo",
-  "absorbed_at": "2026-07-07",
+  "absorbed_at": "2026-07-19",
   "locator": {
     "repo": "https://github.com/DietrichGebert/ponytail",
     "tracked_paths": [
@@ -14,7 +14,7 @@
   "absorbed_version": {
     "plugin_version": "4.8.4",
     "commit": "1b2760d384c44e573a9d8c7a729fac616e5c3a76",
-    "blob": "blob:426109e6f0542171c2aa18da169bd311508684e6",
+    "blob": "blob:bc3595d1a07cff2b135139cadfa4c17ec412667b",
     "concept_ref": "lazy-senior-dev discipline: 7-rung decision ladder + safety floor + root-cause bug fix + simplification-comment convention"
   },
   "dependents": [
