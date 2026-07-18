@@ -20,6 +20,9 @@ kept, and a real conflict is reported instead of being silently overwritten.
 Run these from inside the `claude-overlay` folder:
 
 ```bash
+./doctor.sh                             # one read-only health verdict (run this FIRST after an update)
+./doctor.sh --quiet                     # one-line verdict + exit code, offline-safe (--local-only reabsorb)
+
 ./upstream-changes.sh                   # what the OMC update changed in files you patch (read-only)
 ./apply.sh                              # dry run: report only, writes nothing
 ./apply.sh --write                      # apply clean merges
@@ -28,6 +31,12 @@ Run these from inside the `claude-overlay` folder:
 ./reabsorb.sh                           # detect drift in absorbed EXTERNAL sources (sibling flow, read-only)
 ./tests/run.sh                          # run the reabsorb test harness (hermetic)
 ```
+
+`doctor.sh` is read-only by construction — no `--write` path exists — and folds `apply.sh`
++ `reabsorb.sh` + a version-skew breadcrumb (active cache vs marketplace clone) into a single
+verdict and exit code (`3` error · `2` hard=CONFLICT/MISSING · `5` soft drift · `4` info · `0`
+healthy). `--quiet` skips git-repo network probes, so a clean run exits `4` by design; the full
+`./doctor.sh` is the real all-green check at `0`. See "Health check" in [SKILL.md](SKILL.md).
 
 For the full step-by-step flow the assistant follows after an update, see the
 "Guided update workflow" section of [SKILL.md](SKILL.md).
@@ -122,6 +131,8 @@ version — a stale baseline invites needless conflicts over time.
 ```
 claude-overlay/
   apply.sh                       # the three-way re-apply script
+  doctor.sh                      # one read-only health verdict (apply.sh + reabsorb.sh + version skew)
+  lib/omc-version.sh             # shared version-read + skew-breadcrumb helper (used by apply.sh + doctor.sh)
   upstream-changes.sh            # shows what the OMC update changed in patched files (read-only)
   reabsorb.sh                    # re-absorption drift detector for absorbed EXTERNAL sources (sibling flow)
   .reabsorb_core.py              # reabsorb detect/triage/bump/validate core (pure stdlib)
@@ -130,6 +141,7 @@ claude-overlay/
   verdict.schema.json            # architect triage verdict contract (anti-rubber-stamp)
   sources/<id>/provenance.json   # what we absorbed, from which source@version, which assets depend on what
   tests/run.sh                   # hermetic reabsorb test harness (fixtures via env overrides)
+  REGRESSIONS.md                 # fossilized-bug ledger; each line names a permanent tests/run.sh fixture
   docs/reabsorb-design.md        # re-absorption flow design (8 decisions locked)
   SKILL.md                       # usage doc for the assistant (incl. guided update workflow)
   README.md / README.ko.md
