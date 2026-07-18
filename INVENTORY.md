@@ -34,9 +34,7 @@
 
 | source | type | upstream | pinned |
 |---|---|---|---|
-| `dev` | installed-plugin | dev@team-attention-plugins | `1.1.0` |
 | `humanize-korean` | installed-plugin | humanize-korean@im-not-ai | `1.5.0` |
-| `insane-search` | installed-plugin | insane-search@gptaku-plugins | `0.9.2` |
 | `ponytail` | git-repo | DietrichGebert/ponytail | `1b2760d384c4` |
 | `superpowers-completion-discipline` | git-repo | obra/superpowers | `2f14076e59e6` |
 
@@ -51,4 +49,4 @@
 | rule | `writing-tropes.md` | `korean-writing` | `~/.claude/rules` |
 
 ---
-_8 absorbed skill(s), 9 file patch(es), 5 owned rule/hook(s), 10 provenance source(s)._
+_8 absorbed skill(s), 9 file patch(es), 5 owned rule/hook(s), 8 provenance source(s)._

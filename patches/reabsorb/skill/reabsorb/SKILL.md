@@ -21,8 +21,8 @@ triggers:
 > **claude-overlay 폴더에서 실행한다.**
 
 ## 언제
-- 흡수한 외부 원본(insane-search/humanize-korean/dev/Superpowers)이 업데이트됐을 수 있을 때.
-- "재흡수 돌려줘", 주기 점검, 또는 insane-search 등 특정 원본 업데이트를 반영하고 싶을 때.
+- 흡수한 외부 원본(humanize-korean/ponytail/Superpowers/vercel 등)이 업데이트됐을 수 있을 때.
+- "재흡수 돌려줘", 주기 점검, 또는 humanize-korean 등 특정 원본 업데이트를 반영하고 싶을 때.
 
 ## 절대 규칙
 - **기본은 dry-run.** 감지·triage·preview는 아무것도 안 쓴다. 쓰기는 사람 승인 후 명시 단계에서만.
