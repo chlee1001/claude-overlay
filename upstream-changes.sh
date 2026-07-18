@@ -14,17 +14,13 @@
 set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PATCHES_DIR="$SCRIPT_DIR/patches"
+PATCHES_DIR="${OMC_PATCHES_DIR:-$SCRIPT_DIR/patches}"
 MP="${OMC_MARKETPLACE:-$HOME/.claude/plugins/marketplaces/omc}"
 REPO_URL="https://github.com/Yeachan-Heo/oh-my-claudecode"
 
-INSTALLED="$HOME/.claude/plugins/installed_plugins.json"
-CUR_VER="$(python3 -c "
-import json, os
-d=json.load(open('$INSTALLED'))
-p=d.get('plugins', d).get('oh-my-claudecode@omc', [])
-print(os.path.basename(p[0]['installPath']) if p and p[0].get('installPath') else '')
-" 2>/dev/null)"
+# active version via the shared canonical resolver (honors OMC_INSTALLED_PLUGINS)
+. "$SCRIPT_DIR/lib/omc-version.sh"
+CUR_VER="$(omc_active_installpath)"; CUR_VER="${CUR_VER:+$(basename "$CUR_VER")}"
 
 have_git=0
 git -C "$MP" rev-parse --git-dir >/dev/null 2>&1 && have_git=1

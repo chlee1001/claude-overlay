@@ -51,8 +51,22 @@ run() { # run reabsorb against fixtures; echoes output, sets RC
 echo "reabsorb test harness"
 echo "1) syntax"
 bash -n "$REABSORB" && ok "reabsorb.sh bash -n" || bad "reabsorb.sh bash -n"
-python3 -m py_compile "$ROOT/.reabsorb_core.py" && ok ".reabsorb_core.py compiles" || bad "py_compile"
+bash -n "$ROOT/lib/omc-version.sh" && ok "lib/omc-version.sh bash -n" || bad "lib/omc-version.sh bash -n"
+python3 -m py_compile "$ROOT/.reabsorb_core.py" && ok ".reabsorb_core.py compiles" || bad "py_compile core"
+python3 -m py_compile "$ROOT/lib/omc_version.py" && ok "lib/omc_version.py compiles" || bad "py_compile omc_version"
 python3 -c "import json;json.load(open('$ROOT/verdict.schema.json'))" && ok "verdict.schema.json parses" || bad "verdict.schema.json parses"
+
+echo "1b) canonical parser lib/omc_version.py (single source for bash helper + core)"
+printf '{"plugins":{"oh-my-claudecode@omc":[{"installPath":"/x/cache/omc/oh-my-claudecode/9.9.9"}]}}\n' > "$TMP/ip1.json"
+got="$(OMC_INSTALLED_PLUGINS="$TMP/ip1.json" python3 "$ROOT/lib/omc_version.py")"
+assert_eq "omc_version.py default key -> full installPath" "/x/cache/omc/oh-my-claudecode/9.9.9" "$got"
+got="$(OMC_INSTALLED_PLUGINS="$TMP/ip1.json" python3 "$ROOT/lib/omc_version.py" nonexistent@plugin)"
+assert_eq "omc_version.py unknown key -> empty" "" "$got"
+got="$(OMC_INSTALLED_PLUGINS="$TMP/none.json" python3 "$ROOT/lib/omc_version.py")"
+assert_eq "omc_version.py missing file -> empty (no error)" "" "$got"
+# bash helper delegates to the same source -> same answer
+got="$(OMC_INSTALLED_PLUGINS="$TMP/ip1.json" bash -c '. "'"$ROOT"'/lib/omc-version.sh"; omc_active_installpath')"
+assert_eq "bash omc_active_installpath == python module" "/x/cache/omc/oh-my-claudecode/9.9.9" "$got"
 
 echo "2) REGRESSION: insane-design 3.1->3.2 schema drift (version unchanged)"
 rm -rf "$TMP/sources"; mk_source "$TMP/sources/demo" "3.1" "1.0.0"; mk_mp "3.2"; mk_installed "1.0.0"

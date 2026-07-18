@@ -16,6 +16,9 @@ import subprocess
 import sys
 import tempfile
 
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "lib"))
+import omc_version  # canonical installed_plugins.json parser (shared with lib/omc-version.sh)
+
 SOURCES_DIR = os.environ["OMC_SOURCES_DIR"]
 INSTALLED = os.path.expanduser(os.environ["OMC_INSTALLED_PLUGINS"])
 MARKETPLACES = os.path.expanduser(os.environ["OMC_MARKETPLACES_DIR"])
@@ -33,20 +36,10 @@ def load_json(path):
 
 
 def installed_version(plugin_key):
-    """Current version of an installed plugin = basename of its installPath."""
-    if not os.path.exists(INSTALLED):
-        return None
-    try:
-        data = load_json(INSTALLED)
-    except Exception:
-        return None
-    plugins = data.get("plugins", data)
-    entries = plugins.get(plugin_key, [])
-    for e in entries:
-        p = e.get("installPath", "")
-        if p:
-            return os.path.basename(p.rstrip("/"))
-    return None
+    """Current version of an installed plugin = basename of its installPath.
+    Parse via the shared canonical source (lib/omc_version.py); None if absent."""
+    p = omc_version.installpath(plugin_key, INSTALLED)
+    return os.path.basename(p.rstrip("/")) if p else None
 
 
 def _frontmatter(text):

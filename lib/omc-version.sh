@@ -1,31 +1,21 @@
 #!/usr/bin/env bash
-# claude-overlay/lib/omc-version.sh — shared OMC install resolver.
-# Single canonical parse of installed_plugins.json, sourced by apply.sh + doctor.sh
-# (rule-of-three: apply.sh, upstream-changes.sh, .reabsorb_core.py already each had
-# their own copy). Honors OMC_INSTALLED_PLUGINS so tests inject a fixture instead of
-# touching real ~/.claude.
+# claude-overlay/lib/omc-version.sh — shared OMC install resolver (bash side).
+# The installed_plugins.json PARSE itself lives once in lib/omc_version.py (the single
+# source, also imported by .reabsorb_core.py); this file just wraps it for bash callers
+# (apply.sh, doctor.sh, upstream-changes.sh) and adds the skew helpers. Honors
+# OMC_INSTALLED_PLUGINS (read by omc_version.py) so tests inject a fixture.
 #
 # Usage:
 #   . lib/omc-version.sh
 #   path="$(omc_active_installpath)"   # FULL installPath, or "" if absent
 #   ver="$(basename "$path")"          # callers basename as needed
 
+_OMC_VERSION_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 # Print the full installPath of the active oh-my-claudecode@omc plugin, or "" if the
-# file/entry is missing. Never errors — absence is empty output, exit 0.
+# file/entry is missing. Delegates to the canonical parser. Never errors.
 omc_active_installpath() {
-  local f="${OMC_INSTALLED_PLUGINS:-$HOME/.claude/plugins/installed_plugins.json}"
-  [ -f "$f" ] || { printf ''; return 0; }
-  python3 -c "
-import json,sys
-try:
-    d=json.load(open('$f'))
-except Exception:
-    print(''); sys.exit(0)
-plugins=d.get('plugins', d)
-e=plugins.get('oh-my-claudecode@omc',[])
-paths=[x.get('installPath','') for x in e if x.get('installPath')]
-print(paths[0] if paths else '')
-" 2>/dev/null || printf ''
+  python3 "$_OMC_VERSION_LIB_DIR/omc_version.py" oh-my-claudecode@omc 2>/dev/null || printf ''
 }
 
 # Normalize a version label to its release core for skew comparison: strip a leading
