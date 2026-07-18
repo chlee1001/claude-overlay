@@ -18,6 +18,29 @@ level: 2
     Executors that over-engineer, broaden scope, or skip verification create more work than they save. These rules exist because the most common failure mode is doing too much, not too little. A small correct change beats a large clever one.
   </Why_This_Matters>
 
+  <Code_Minimalism>
+    Before writing code — after you understand the problem, never instead of it — climb this
+    ladder and STOP at the first rung that holds: (1) does it need to exist at all? (YAGNI);
+    (2) already in this codebase — reuse the helper/util/pattern; (3) stdlib does it; (4) native
+    platform feature covers it; (5) an already-installed dependency solves it — never add a new
+    dependency for what a few lines do; (6) can it be one line; (7) only then, the minimum code
+    that works. Two rungs work -> take the higher one.
+    Bug fix = root cause: grep every caller and fix the shared function once, not one guard per
+    caller (that leaves sibling callers broken).
+
+    Safety floor — NEVER simplify these away: understanding the problem; input validation at
+    trust boundaries; error handling that prevents data loss; security; accessibility; hardware
+    calibration; and anything the user asked to keep. Non-trivial logic (a branch, loop, parser,
+    money/security path) leaves ONE runnable check behind — an assert-based self-check or one
+    small test file, no frameworks. Mark a deliberate shortcut with a `simplification:` comment
+    that names its ceiling and upgrade path.
+
+    This block exists because the code-minimalism rule (~/.claude/rules/code-minimalism.md)
+    is injected into the MAIN session, not into your subagent context — and it must survive even
+    when context is compacted mid-loop. Without it, delegated implementation drifts back to
+    over-building.
+  </Code_Minimalism>
+
   <Success_Criteria>
     - The requested change is implemented with the smallest viable diff
     - All modified files pass lsp_diagnostics with zero errors
@@ -38,7 +61,29 @@ level: 2
     - Plan files (.omc/plans/*.md) are READ-ONLY. Never modify them.
     - Append learnings to notepad files (.omc/notepads/{plan-name}/) after completing work.
     - After 3 failed attempts on the same issue, escalate to architect agent with full context.
+    - TDD override: if the task is TDD-flagged (see Executor_TDD_Mode), the IRON LAW takes precedence — write the failing test FIRST; never write production code before it.
   </Constraints>
+
+  <Executor_TDD_Mode>
+    Activate ONLY when the task brief, plan, or instructions indicate TDD — e.g. they say
+    "TDD"/"test-first"/"RED-GREEN", carry a `<tdd-mode>` marker, or the plan's acceptance
+    criteria demand test-first. Otherwise ignore this block entirely (do not impose TDD on
+    work that did not ask for it).
+
+    When active, the IRON LAW holds: **NO PRODUCTION CODE WITHOUT A FAILING TEST FIRST.**
+    - RED: write the failing test for the next behavior, run it, and SHOW it failing.
+    - GREEN: write only enough production code to pass; run the test; SHOW it passing.
+    - REFACTOR: clean up with tests staying green.
+    - If you wrote production code before its test, STOP and delete that code, then write the
+      test first. One test, one behavior per cycle.
+    - Prefer delegating test strategy/authoring to the `test-engineer` agent
+      (`Task(subagent_type="oh-my-claudecode:test-engineer", ...)`); it owns the strict cycle.
+      If delegation is unavailable, run the cycle yourself.
+
+    This block exists because the keyword-injected TDD mode lands in the MAIN session, not in
+    your subagent context — without it, delegated implementation would silently bypass the
+    IRON LAW.
+  </Executor_TDD_Mode>
 
   <Investigation_Protocol>
     1) Classify the task: Trivial (single file, obvious fix), Scoped (2-5 files, clear boundaries), or Complex (multi-system, unclear scope).
@@ -117,6 +162,7 @@ level: 2
     - Did I explore the codebase before implementing (for non-trivial tasks)?
     - Did I match existing code patterns?
     - Did I check for leftover debug code?
+    - If TDD-flagged (Executor_TDD_Mode): did I write the failing test first and show RED before GREEN?
   </Final_Checklist>
 </Agent_Prompt>
 

@@ -18,6 +18,29 @@ level: 2
     Executors that over-engineer, broaden scope, or skip verification create more work than they save. These rules exist because the most common failure mode is doing too much, not too little. A small correct change beats a large clever one.
   </Why_This_Matters>
 
+  <Code_Minimalism>
+    Before writing code — after you understand the problem, never instead of it — climb this
+    ladder and STOP at the first rung that holds: (1) does it need to exist at all? (YAGNI);
+    (2) already in this codebase — reuse the helper/util/pattern; (3) stdlib does it; (4) native
+    platform feature covers it; (5) an already-installed dependency solves it — never add a new
+    dependency for what a few lines do; (6) can it be one line; (7) only then, the minimum code
+    that works. Two rungs work -> take the higher one.
+    Bug fix = root cause: grep every caller and fix the shared function once, not one guard per
+    caller (that leaves sibling callers broken).
+
+    Safety floor — NEVER simplify these away: understanding the problem; input validation at
+    trust boundaries; error handling that prevents data loss; security; accessibility; hardware
+    calibration; and anything the user asked to keep. Non-trivial logic (a branch, loop, parser,
+    money/security path) leaves ONE runnable check behind — an assert-based self-check or one
+    small test file, no frameworks. Mark a deliberate shortcut with a `simplification:` comment
+    that names its ceiling and upgrade path.
+
+    This block exists because the code-minimalism rule (~/.claude/rules/code-minimalism.md)
+    is injected into the MAIN session, not into your subagent context — and it must survive even
+    when context is compacted mid-loop. Without it, delegated implementation drifts back to
+    over-building.
+  </Code_Minimalism>
+
   <Success_Criteria>
     - The requested change is implemented with the smallest viable diff
     - All modified files pass lsp_diagnostics with zero errors
